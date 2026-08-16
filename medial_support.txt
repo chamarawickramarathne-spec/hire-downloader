@@ -1,0 +1,33 @@
+1. TITLE
+Hire Downloader
+
+2. SHORT DESCRIPTION
+Universal Windows media downloader for YouTube, playlists, torrents, and direct files — dark UI, queue, schedule, one-click updates.
+
+3. LONG DESCRIPTION
+Hire Downloader is a fast, dark-themed Windows app that pulls media from YouTube (including playlists), magnet/torrent links, and direct HTTP files. Choose quality formats, run multiple downloads with a real queue, pause and resume, schedule night-time batches, and keep a history of completed files. Built-in system tray keeps downloads going in the background. One-click updates install the latest release from GitHub without hunting for installers.
+
+4. FACEBOOK POST
+Tired of juggling browser extensions and random download sites?
+
+Hire Downloader brings YouTube, playlists, torrents, and direct file downloads into one clean dark Windows app.
+
+✅ Format picker for YouTube
+✅ Real download queue + pause/resume
+✅ Night schedule window
+✅ History + open folder
+✅ One-click app updates
+
+Download smarter. Stay in control.
+
+#HireDownloader #WindowsApp #YouTubeDownloader #Torrent #MediaTools #Productivity
+
+5. TAGS
+HireDownloader, WindowsDownloader, YouTubeDownload, PlaylistDownload, TorrentClient, MediaDownloader, DarkModeApp, DownloadQueue, DesktopApp, ProductivityTools
+
+6. IMAGE PROMPTS
+1. Dark neon UI mockup of a media downloader titled Hire Downloader, red accents, download progress bars, YouTube thumbnail cards, ultrawide desktop screenshot style
+2. Hero banner: sleek black gradient background, glowing red download arrow logo, text "Hire Downloader — YouTube · Torrents · Direct", modern tech product ad
+3. Infographic strip showing three icons: play button (YouTube), magnet (torrent), link (direct file), connected to a laptop running a dark app UI
+4. Close-up product shot of a Windows app settings panel with schedule toggle and "Check for updates" button, cinematic lighting
+5. Social square: before/after — messy browser tabs vs clean Hire Downloader queue with completed green checkmarks, bold caption "One app. All downloads."

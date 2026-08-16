@@ -1,0 +1,47 @@
+appId: com.hire-downloader
+productName: Hire Downloader
+directories:
+  buildResources: build
+  output: dist
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!release/*'
+  - '!Final/*'
+  - '!Hire downloader Sell/*'
+  - '!AGENTS.md'
+  - '!AGENTS_PLAN.md'
+  - '!medial_support.txt'
+asarUnpack:
+  - resources/**
+forceCodeSigning: false
+win:
+  executableName: hire-downloader
+  target:
+    - nsis
+  signtoolOptions:
+    sign: null
+  verifyUpdateCodeSignature: false
+nsis:
+  artifactName: HireDownloader-Setup.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+mac:
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: false
+dmg:
+  artifactName: HireDownloader.${ext}
+linux:
+  target:
+    - AppImage
+  maintainer: hire-downloader
+  category: Utility
+appImage:
+  artifactName: HireDownloader.${ext}
+npmRebuild: false
