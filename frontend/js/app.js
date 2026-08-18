@@ -1,0 +1,255 @@
+window.app = {
+  downloads: [],
+  settings: {},
+
+  async init() {
+    const ver = await pycall('get_version');
+    if (ver) document.getElementById('versionBadge').textContent = 'v' + ver;
+
+    this.settings = await pycall('get_settings') || {};
+    this.downloads = await pycall('get_downloads') || [];
+    const hist = await pycall('get_history') || [];
+    this.renderDownloads();
+    this.renderHistory(hist);
+  },
+
+  // ── Actions ──
+
+  async addUrl() {
+    const input = document.getElementById('urlInput');
+    const url = input.value.trim();
+    if (!url) return;
+    input.value = '';
+    await pycall('add_url', url);
+    this.refresh();
+  },
+
+  async startDl(id) { await pycall('start_download', id); this.refresh(); },
+  async pauseDl(id) { await pycall('pause_download', id); this.refresh(); },
+  async resumeDl(id) { await pycall('resume_download', id); this.refresh(); },
+  async cancelDl(id) { await pycall('cancel_download', id); this.refresh(); },
+  async removeDl(id) { await pycall('remove_download', id); this.refresh(); },
+
+  retryDl(id) {
+    const item = this.downloads.find(d => d.id === id);
+    if (item) {
+      item.status = 'ready';
+      item.error = '';
+      item.progress = 0;
+      this.renderDownloads();
+    }
+  },
+
+  async setFormat(id, formatId) { await pycall('set_format', id, formatId); },
+
+  async startAll() { await pycall('start_all'); this.refresh(); },
+
+  async showInFolder(path) { await pycall('open_folder', path); },
+
+  // ── Modals ──
+
+  showSettings() { SettingsUI.show(this.settings); },
+  hideSettings() { SettingsUI.hide(); },
+
+  async saveSettings() {
+    const data = SettingsUI.collect();
+    await pycall('save_settings', data);
+    this.settings = data;
+    SettingsUI.hide();
+  },
+
+  async browseFolder() {
+    // pywebview on Windows doesn't have native folder picker via JS,
+    // user types path manually or we can call Python
+    // For now, the input is editable
+  },
+
+  showImport() { document.getElementById('importModal').style.display = 'flex'; },
+
+  async importUrls() {
+    const text = document.getElementById('importBox').value;
+    const urls = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (urls.length > 0) {
+      await pycall('add_urls', urls);
+    }
+    document.getElementById('importBox').value = '';
+    document.getElementById('importModal').style.display = 'none';
+    this.refresh();
+  },
+
+  // ── Update ──
+
+  async checkUpdate() {
+    const btn = document.getElementById('updateBtn');
+    btn.textContent = '...';
+    btn.disabled = true;
+    try {
+      const info = await pycall('check_update');
+      if (info && info.has_update) {
+        btn.textContent = 'v' + info.latest_version;
+        btn.onclick = () => this.doUpdate(info);
+      } else {
+        btn.textContent = 'Up to date';
+        setTimeout(() => { btn.textContent = 'Update'; btn.disabled = false; btn.onclick = () => app.checkUpdate(); }, 2000);
+        return;
+      }
+    } catch {
+      btn.textContent = 'Update';
+    }
+    btn.disabled = false;
+  },
+
+  async doUpdate(info) {
+    const btn = document.getElementById('updateBtn');
+    btn.textContent = 'Downloading...';
+    btn.disabled = true;
+    await pycall('download_update');
+    btn.textContent = 'Installing...';
+    await pycall('install_update');
+    window.close && window.close();
+  },
+
+  async settingsCheckUpdate() {
+    const el = document.getElementById('updateStatus');
+    el.textContent = 'Checking...';
+    const info = await pycall('check_update');
+    if (info && info.has_update) {
+      el.textContent = `Update available: v${info.latest_version}`;
+    } else if (info) {
+      el.textContent = `Up to date \u00b7 v${info.current_version}`;
+    } else {
+      el.textContent = 'Check failed';
+    }
+  },
+
+  async settingsInstallUpdate() {
+    const el = document.getElementById('updateStatus');
+    el.textContent = 'Working...';
+    const info = await pycall('check_update');
+    if (!info || !info.has_update) {
+      el.textContent = info ? `Up to date \u00b7 v${info.current_version}` : 'Check failed';
+      return;
+    }
+    el.textContent = 'Downloading...';
+    await pycall('download_update');
+    el.textContent = 'Installing...';
+    await pycall('install_update');
+    el.textContent = 'Done';
+  },
+
+  // ── History ──
+
+  async clearHistory() {
+    await pycall('clear_history');
+    this.renderHistory([]);
+  },
+
+  async deleteHistory(id) {
+    await pycall('delete_history', id);
+    const hist = await pycall('get_history') || [];
+    this.renderHistory(hist);
+  },
+
+  async reAddHistory(url) {
+    await pycall('add_url', url);
+    this.refresh();
+  },
+
+  // ── Rendering ──
+
+  renderDownloads() {
+    const list = document.getElementById('downloadList');
+    const empty = document.getElementById('emptyState');
+    DownloadsUI.render(this.downloads, list, empty);
+  },
+
+  renderHistory(hist) {
+    const container = document.getElementById('historyList');
+    const emptyEl = document.getElementById('historyEmpty');
+    container.innerHTML = '';
+    if (!hist || hist.length === 0) {
+      emptyEl.style.display = 'block';
+      container.appendChild(emptyEl);
+      return;
+    }
+    emptyEl.style.display = 'none';
+    hist.slice(0, 40).forEach(h => {
+      const row = document.createElement('div');
+      row.className = 'history-row';
+      row.innerHTML = `
+        <span class="badge badge-${h.badge}">${escapeHtml(h.badge)}</span>
+        <span class="history-title">${escapeHtml(h.title)}</span>
+        <button class="btn btn-ghost btn-xs">Re-add</button>
+        <button class="btn btn-ghost btn-xs">&times;</button>
+      `;
+      const btns = row.querySelectorAll('.btn');
+      btns[0].onclick = () => app.reAddHistory(h.url);
+      btns[1].onclick = () => app.deleteHistory(h.id);
+      container.appendChild(row);
+    });
+  },
+
+  async refresh() {
+    this.downloads = await pycall('get_downloads') || [];
+    this.renderDownloads();
+    const qi = await pycall('get_queue_info');
+    if (qi) {
+      const parts = [];
+      if (qi.active) parts.push(qi.active + ' active');
+      if (qi.queued) parts.push(qi.queued + ' queued');
+      document.getElementById('queueInfo').textContent = parts.join(' \u00b7 ');
+    }
+  },
+
+  // ── Push callbacks from Python ──
+
+  updateDownloads(data) {
+    this.downloads = data;
+    this.renderDownloads();
+  },
+
+  updateHistory(data) {
+    this.renderHistory(data);
+  },
+
+  updateQueue(active, queued) {
+    const parts = [];
+    if (active) parts.push(active + ' active');
+    if (queued) parts.push(queued + ' queued');
+    document.getElementById('queueInfo').textContent = parts.join(' \u00b7 ');
+  },
+
+  updateDownloadProgress(id, pct, speed, eta) {
+    const item = this.downloads.find(d => d.id === id);
+    if (item) {
+      item.progress = pct;
+      item.speed = speed;
+      item.eta = eta;
+      item.status = 'downloading';
+      this.renderDownloads();
+    }
+  },
+
+  updateDownloadDest(id, path) {
+    const item = this.downloads.find(d => d.id === id);
+    if (item) {
+      item.file_path = path;
+    }
+  },
+
+  updateProgress(stage, received, total) {
+    if (stage === 'downloading' && total) {
+      const pct = Math.round(received * 100 / total);
+      document.getElementById('statusBar').textContent = `Downloading update... ${pct}%`;
+    } else if (stage === 'complete') {
+      document.getElementById('statusBar').textContent = 'Launching installer...';
+    }
+  },
+
+  setStatus(msg) {
+    document.getElementById('statusBar').textContent = msg;
+  }
+};
+
+// Auto-init when pywebview is ready
+window.addEventListener('pywebviewready', () => app.init());

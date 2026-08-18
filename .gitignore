@@ -2,11 +2,16 @@ node_modules/
 out/
 dist/
 dist-electron/
-release/
+
 Final/
 Hire downloader Sell/
-resources/yt-dlp.exe
-resources/ffmpeg.exe
+.venv/
+.venv64/
+.venv32/
+build/pyi_*/
+build/*.spec
+__pycache__/
+*.py[cod]
 *.log
 .DS_Store
 Thumbs.db
@@ -14,3 +19,10 @@ Thumbs.db
 .vscode/
 .env
 .env.*
+resources/yt-dlp.exe
+resources/ffmpeg.exe
+resources/aria2c.exe
+resources_x86/
+package-lock.json
+cmd.exe
+scripts/__pycache__/

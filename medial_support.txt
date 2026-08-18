@@ -2,32 +2,31 @@
 Hire Downloader
 
 2. SHORT DESCRIPTION
-Universal Windows media downloader for YouTube, playlists, torrents, and direct files — dark UI, queue, schedule, one-click updates.
+Lightweight Python Windows downloader for YouTube, playlists, torrents, and direct files — powered by pywebview, yt-dlp, and aria2c. 32-bit & 64-bit.
 
 3. LONG DESCRIPTION
-Hire Downloader is a fast, dark-themed Windows app that pulls media from YouTube (including playlists), magnet/torrent links, and direct HTTP files. Choose quality formats, run multiple downloads with a real queue, pause and resume, schedule night-time batches, and keep a history of completed files. Built-in system tray keeps downloads going in the background. One-click updates install the latest release from GitHub without hunting for installers.
+Hire Downloader 3.0 is a complete rewrite using pywebview with Edge WebView2 for a native-feeling dark UI and dramatically smaller footprint. Download YouTube videos and playlists with quality choice, magnet torrents via aria2c, and direct HTTP files with resume. Manage a concurrent download queue, pause and resume jobs, schedule overnight downloads, and keep a local history. Built-in updates install the correct 32-bit or 64-bit setup from GitHub automatically.
 
 4. FACEBOOK POST
-Tired of juggling browser extensions and random download sites?
+Hire Downloader 3.0 is here — rebuilt from the ground up for a lighter, faster experience.
 
-Hire Downloader brings YouTube, playlists, torrents, and direct file downloads into one clean dark Windows app.
+YouTube + playlists
+Torrents (aria2c)
+Direct file downloads
+Queue, pause/resume, night schedule
+Works on 32-bit AND 64-bit Windows
+One-click updates
 
-✅ Format picker for YouTube
-✅ Real download queue + pause/resume
-✅ Night schedule window
-✅ History + open folder
-✅ One-click app updates
+All your downloads. One lightweight app.
 
-Download smarter. Stay in control.
-
-#HireDownloader #WindowsApp #YouTubeDownloader #Torrent #MediaTools #Productivity
+#HireDownloader #WindowsApp #YouTubeDownloader #Python #DownloadManager #Lightweight
 
 5. TAGS
-HireDownloader, WindowsDownloader, YouTubeDownload, PlaylistDownload, TorrentClient, MediaDownloader, DarkModeApp, DownloadQueue, DesktopApp, ProductivityTools
+HireDownloader, WindowsDownloader, YouTubeDownload, PlaylistDownload, TorrentClient, PythonApp, MediaDownloader, DarkMode, 32bit, 64bit, Lightweight, pywebview
 
 6. IMAGE PROMPTS
-1. Dark neon UI mockup of a media downloader titled Hire Downloader, red accents, download progress bars, YouTube thumbnail cards, ultrawide desktop screenshot style
-2. Hero banner: sleek black gradient background, glowing red download arrow logo, text "Hire Downloader — YouTube · Torrents · Direct", modern tech product ad
-3. Infographic strip showing three icons: play button (YouTube), magnet (torrent), link (direct file), connected to a laptop running a dark app UI
-4. Close-up product shot of a Windows app settings panel with schedule toggle and "Check for updates" button, cinematic lighting
-5. Social square: before/after — messy browser tabs vs clean Hire Downloader queue with completed green checkmarks, bold caption "One app. All downloads."
+1. Dark red-accent desktop app UI mockup titled Hire Downloader 3.0, download queue with progress bars, modern card-based layout, Windows 11 style
+2. Split banner: left heavy old app icon, right slim lightweight Hire Downloader 3.0 icon, size comparison
+3. Product hero: glowing red download arrow logo on black gradient, text "Hire Downloader 3.0 — YouTube Torrents Direct"
+4. Feature strip icons: play button, magnet, link, clock schedule, refresh update arrow, feather lightness
+5. Before/after infographic: v2.0 80MB vs v3.0 20MB installer size comparison

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hire Downloader</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">
+          <span class="logo-hire">Hire</span>
+          <span class="logo-dl">Downloader</span>
+        </div>
+        <span class="version-badge" id="versionBadge">v3.0.0</span>
+        <span class="queue-info" id="queueInfo"></span>
+        <button class="btn btn-ghost btn-sm" id="updateBtn" onclick="app.checkUpdate()">Update</button>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-ghost btn-sm" onclick="app.showImport()">+ Import</button>
+        <button class="btn btn-accent btn-sm" onclick="app.startAll()">Download All</button>
+        <button class="btn btn-ghost btn-sm" onclick="app.showSettings()">Settings</button>
+      </div>
+    </header>
+
+    <!-- URL Input -->
+    <div class="url-bar">
+      <input type="text" id="urlInput" class="url-input"
+        placeholder="Paste YouTube, playlist, magnet, or direct URL..."
+        onkeydown="if(event.key==='Enter')app.addUrl()">
+      <button class="btn btn-accent" onclick="app.addUrl()">Add</button>
+    </div>
+
+    <!-- Download List -->
+    <div class="download-list" id="downloadList">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">&#8615;</div>
+        <p>Paste a URL above</p>
+        <p class="empty-sub">YouTube &middot; playlists &middot; torrents &middot; direct files</p>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="history-section">
+      <div class="history-header">
+        <span class="section-title">History</span>
+        <button class="btn btn-ghost btn-xs" onclick="app.clearHistory()">Clear</button>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="history-empty" id="historyEmpty">No history yet</div>
+      </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar" id="statusBar"></div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settingsModal" style="display:none">
+    <div class="modal">
+      <div class="modal-title">Settings</div>
+
+      <label class="field-label">Download Directory</label>
+      <div class="field-row">
+        <input type="text" id="settingsPath" class="field-input">
+        <button class="btn btn-ghost btn-sm" onclick="app.browseFolder()">Browse</button>
+      </div>
+
+      <label class="field-label">Max Concurrent Downloads: <span id="maxConcVal">1</span></label>
+      <input type="range" id="maxConcSlider" min="1" max="10" value="1"
+        oninput="document.getElementById('maxConcVal').textContent=this.value" class="slider">
+
+      <div class="field-label" style="margin-top:16px">Scheduled Downloads</div>
+      <label class="check-label">
+        <input type="checkbox" id="schedEnabled"> Enable daily schedule
+      </label>
+      <div class="field-row" style="gap:12px">
+        <div>
+          <span class="field-sublabel">Start</span>
+          <input type="text" id="schedStart" class="field-input field-input-sm" value="01:00">
+        </div>
+        <div>
+          <span class="field-sublabel">Stop</span>
+          <input type="text" id="schedEnd" class="field-input field-input-sm" value="06:00">
+        </div>
+      </div>
+
+      <div class="field-label" style="margin-top:16px">About &amp; Updates</div>
+      <div class="about-text" id="aboutText">Hire Downloader v3.0.0</div>
+      <div class="update-row">
+        <button class="btn btn-ghost btn-sm" onclick="app.settingsCheckUpdate()">Check</button>
+        <button class="btn btn-accent btn-sm" onclick="app.settingsInstallUpdate()">Download &amp; Install</button>
+      </div>
+      <div class="update-status" id="updateStatus"></div>
+
+      <button class="btn btn-accent btn-full" style="margin-top:20px" onclick="app.saveSettings()">Done</button>
+    </div>
+  </div>
+
+  <!-- Batch Import Modal -->
+  <div class="modal-overlay" id="importModal" style="display:none">
+    <div class="modal">
+      <div class="modal-title">Batch Import</div>
+      <label class="field-label">Paste URLs (one per line)</label>
+      <textarea id="importBox" class="field-textarea" rows="10"></textarea>
+      <button class="btn btn-accent btn-full" style="margin-top:12px" onclick="app.importUrls()">Import</button>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/downloads.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
