@@ -30,13 +30,15 @@ window.app = {
   async cancelDl(id) { await pycall('cancel_download', id); this.refresh(); },
   async removeDl(id) { await pycall('remove_download', id); this.refresh(); },
 
-  retryDl(id) {
+  async retryDl(id) {
     const item = this.downloads.find(d => d.id === id);
     if (item) {
-      item.status = 'ready';
+      item.status = 'fetching';
       item.error = '';
       item.progress = 0;
       this.renderDownloads();
+      await pycall('add_url', item.url);
+      this.refresh();
     }
   },
 

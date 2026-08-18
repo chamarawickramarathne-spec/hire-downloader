@@ -311,9 +311,6 @@ class Api:
                 info, browser = ytdlp_engine.fetch_info(
                     item.url, self.settings.get("preferred_browser")
                 )
-                if browser and browser != self.settings.get("preferred_browser"):
-                    self.settings["preferred_browser"] = browser
-                    save_settings(self.settings)
             elif item.type == "torrent":
                 info = torrent_engine.fetch_info(item.url)
             else:
@@ -357,6 +354,7 @@ class Api:
         it.status = "downloading"
         self._push_downloads()
         dest = self.settings.get("download_path")
+        os.makedirs(dest, exist_ok=True)
         resume = bool(getattr(it, "_resume", False))
         setattr(it, "_resume", False)
 

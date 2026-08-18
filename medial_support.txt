@@ -1,32 +1,15 @@
-1. TITLE
-Hire Downloader
+HireDownloader - YouTube & Media Downloader
 
-2. SHORT DESCRIPTION
-Lightweight Python Windows downloader for YouTube, playlists, torrents, and direct files — powered by pywebview, yt-dlp, and aria2c. 32-bit & 64-bit.
+Fast, modern media downloader for Windows. Download videos from YouTube, Facebook, Instagram, TikTok, Twitter/X, Twitch, Vimeo, and 1000+ other sites. Also supports torrent/magnet links and direct HTTP file downloads.
 
-3. LONG DESCRIPTION
-Hire Downloader 3.0 is a complete rewrite using pywebview with Edge WebView2 for a native-feeling dark UI and dramatically smaller footprint. Download YouTube videos and playlists with quality choice, magnet torrents via aria2c, and direct HTTP files with resume. Manage a concurrent download queue, pause and resume jobs, schedule overnight downloads, and keep a local history. Built-in updates install the correct 32-bit or 64-bit setup from GitHub automatically.
+HireDownloader is a lightweight, fast Windows media downloader built with Python and Edge WebView2. Download videos from YouTube (including playlists), Facebook, Instagram, TikTok, Twitter/X, Twitch, Vimeo, SoundCloud, Dailymotion, and over 1000 other websites using yt-dlp technology. Supports torrent/magnet downloads via aria2c and direct HTTP file downloads. Features a sleek dark UI, quality picker with resolution options, download queue with pause/resume, download history, and automatic updates via GitHub. Dual-architecture support (32-bit and 64-bit Windows). No bloatware, no ads - just fast, reliable downloads.
 
-4. FACEBOOK POST
-Hire Downloader 3.0 is here — rebuilt from the ground up for a lighter, faster experience.
+Download videos from YouTube, Facebook, Instagram, TikTok, Twitter/X, and 1000+ sites with HireDownloader - a fast, free, open-source Windows media downloader. Supports HD/4K video quality selection, YouTube playlist downloads, torrent/magnet links, and direct file downloads. Built with yt-dlp and aria2c for maximum compatibility and speed. Features a beautiful dark UI, download queue management, pause/resume, history tracking, and automatic updates. Lightweight (~15MB), no ads, no bloatware. Works on Windows 10/11 (32-bit and 64-bit).
 
-YouTube + playlists
-Torrents (aria2c)
-Direct file downloads
-Queue, pause/resume, night schedule
-Works on 32-bit AND 64-bit Windows
-One-click updates
+hire downloader, video downloader, youtube downloader, facebook downloader, instagram downloader, tiktok downloader, twitter downloader, media downloader, torrent downloader, windows downloader, free video downloader, hd video downloader, 4k downloader, playlist downloader, yt-dlp, aria2c, download manager, video grabber, online video downloader, media grabber
 
-All your downloads. One lightweight app.
-
-#HireDownloader #WindowsApp #YouTubeDownloader #Python #DownloadManager #Lightweight
-
-5. TAGS
-HireDownloader, WindowsDownloader, YouTubeDownload, PlaylistDownload, TorrentClient, PythonApp, MediaDownloader, DarkMode, 32bit, 64bit, Lightweight, pywebview
-
-6. IMAGE PROMPTS
-1. Dark red-accent desktop app UI mockup titled Hire Downloader 3.0, download queue with progress bars, modern card-based layout, Windows 11 style
-2. Split banner: left heavy old app icon, right slim lightweight Hire Downloader 3.0 icon, size comparison
-3. Product hero: glowing red download arrow logo on black gradient, text "Hire Downloader 3.0 — YouTube Torrents Direct"
-4. Feature strip icons: play button, magnet, link, clock schedule, refresh update arrow, feather lightness
-5. Before/after infographic: v2.0 80MB vs v3.0 20MB installer size comparison
+A sleek dark-themed media downloader app interface showing video thumbnails in a download queue with progress bars, quality selection dropdown, and a clean modern UI design
+A Windows desktop application with a dark sidebar navigation, showing a media download in progress with speed and ETA indicators, professional software UI mockup
+A modern download manager interface with a list of YouTube videos being downloaded, showing format options like 1080p 720p 480p, dark mode design with purple accents
+A split-screen image showing a YouTube video on one side and the HireDownloader app downloading it on the other, demonstrating the download workflow
+A minimal dark UI mockup of a media downloader showing a URL input bar at top, download cards with thumbnails and progress bars below, modern Windows app aesthetic

@@ -6,7 +6,7 @@
 Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS frontend). Dark UI. YouTube, playlists, torrents (aria2c), direct files. Supports **32-bit and 64-bit** Windows builds. External binaries: yt-dlp.exe, ffmpeg.exe, aria2c.exe.
 
 ## Current Version
-- **v3.0.0** — MOD 4 (2026-08-18) — pywebview rewrite (customtkinter → pywebview + HTML/CSS/JS)
+- **v3.0.1** — MOD 5 (2026-08-19) — YouTube fetch fix
 
 ## Update source
 - GitHub: `chamarawickramarathne-spec/hire-downloader`
@@ -39,6 +39,16 @@ Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS 
 - Settings/history stored as JSON in AppData
 
 ## Mod Log
+
+### MOD 5 (v3.0.1) — 2026-08-19 — YouTube fetch fix
+- Updated yt-dlp.exe to nightly 2026.08.18 (was 2026.07.04, 6 weeks stale).
+- Fixed retryDl() JS bug: now calls pycall('add_url') to re-fetch via Python instead of client-side status hack.
+- Removed deprecated `android_sdkless` YouTube player client.
+- Reordered player clients: `tv` (most reliable) → `mweb` → `ios+web` → `android+web` → `web`.
+- Removed `--no-warnings` flag that suppressed diagnostic error output.
+- Added `--socket-timeout 30` and `--extractor-retries 3` for network resilience.
+- Stopped persisting `preferred_browser` on success (prevents stale cookie loops).
+- Added `os.makedirs(dest, exist_ok=True)` in `_start_job` before download starts.
 
 ### MOD 4 (v3.0.0) — 2026-08-18 — pywebview rewrite
 - Replaced customtkinter with pywebview + HTML/CSS/JS frontend.

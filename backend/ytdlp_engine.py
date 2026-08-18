@@ -20,11 +20,10 @@ DestCb = Callable[[str, str], None]
 _BROWSERS = ["edge", "chrome", "brave", "vivaldi", "firefox"]
 
 _YT_CLIENTS = [
-    ["android", "web"],
-    ["android_sdkless"],
-    ["mweb"],
     ["tv"],
+    ["mweb"],
     ["ios", "web"],
+    ["android", "web"],
     ["web"],
 ]
 
@@ -41,7 +40,7 @@ def _ffmpeg_location() -> str | None:
 
 
 def _base_args(extra: list[str] | None = None) -> list[str]:
-    args: list[str] = ["--quiet", "--no-warnings", "--no-playlist"]
+    args: list[str] = ["--quiet", "--no-playlist", "--socket-timeout", "30", "--extractor-retries", "3"]
     ff = _ffmpeg_location()
     if ff:
         args += ["--ffmpeg-location", ff]
