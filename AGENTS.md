@@ -6,7 +6,7 @@
 Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS frontend). Dark UI. YouTube, playlists, torrents (aria2c), direct files. Supports **32-bit and 64-bit** Windows builds. External binaries: yt-dlp.exe, ffmpeg.exe, aria2c.exe.
 
 ## Current Version
-- **v3.0.1** — MOD 5 (2026-08-19) — YouTube fetch fix
+- **v3.0.2** — MOD 6 (2026-08-19) — Update feature fix
 
 ## Update source
 - GitHub: `chamarawickramarathne-spec/hire-downloader`
@@ -49,6 +49,11 @@ Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS 
 - Added `--socket-timeout 30` and `--extractor-retries 3` for network resilience.
 - Stopped persisting `preferred_browser` on success (prevents stale cookie loops).
 - Added `os.makedirs(dest, exist_ok=True)` in `_start_job` before download starts.
+
+### MOD 6 (v3.0.2) — 2026-08-19 — Update feature fix
+- Fixed install_update: use ShellExecuteW with runas verb for UAC elevation.
+- Fixed JS doUpdate/settingsInstallUpdate: check errors from download/install, show feedback.
+- Removed window.close race condition — user closes app manually after update.
 
 ### MOD 4 (v3.0.0) — 2026-08-18 — pywebview rewrite
 - Replaced customtkinter with pywebview + HTML/CSS/JS frontend.

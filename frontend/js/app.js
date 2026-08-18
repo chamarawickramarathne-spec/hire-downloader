@@ -105,10 +105,20 @@ window.app = {
     const btn = document.getElementById('updateBtn');
     btn.textContent = 'Downloading...';
     btn.disabled = true;
-    await pycall('download_update');
+    const dlResult = await pycall('download_update');
+    if (dlResult && dlResult.error) {
+      btn.textContent = 'Download failed';
+      setTimeout(() => { btn.textContent = 'Update'; btn.disabled = false; btn.onclick = () => app.checkUpdate(); }, 3000);
+      return;
+    }
     btn.textContent = 'Installing...';
-    await pycall('install_update');
-    window.close && window.close();
+    const instResult = await pycall('install_update');
+    if (instResult && instResult.error) {
+      btn.textContent = 'Install failed';
+      setTimeout(() => { btn.textContent = 'Update'; btn.disabled = false; btn.onclick = () => app.checkUpdate(); }, 3000);
+      return;
+    }
+    btn.textContent = 'Done - close app to update';
   },
 
   async settingsCheckUpdate() {
@@ -133,10 +143,18 @@ window.app = {
       return;
     }
     el.textContent = 'Downloading...';
-    await pycall('download_update');
+    const dlResult = await pycall('download_update');
+    if (dlResult && dlResult.error) {
+      el.textContent = 'Download failed: ' + dlResult.error;
+      return;
+    }
     el.textContent = 'Installing...';
-    await pycall('install_update');
-    el.textContent = 'Done';
+    const instResult = await pycall('install_update');
+    if (instResult && instResult.error) {
+      el.textContent = 'Install failed: ' + instResult.error;
+      return;
+    }
+    el.textContent = 'Done - close app to update';
   },
 
   // ── History ──

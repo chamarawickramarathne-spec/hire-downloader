@@ -156,4 +156,9 @@ def install_update(path: Optional[str] = None) -> None:
     installer = path or get_downloaded_installer()
     if not installer or not os.path.isfile(installer):
         raise RuntimeError("Installer not found")
-    subprocess.Popen([installer], shell=False)
+    import ctypes
+    hinstance = ctypes.windll.shell32.ShellExecuteW(
+        None, "runas", installer, None, os.path.dirname(installer), 1
+    )
+    if hinstance <= 32:
+        raise RuntimeError(f"Failed to launch installer (code {hinstance})")
