@@ -3,9 +3,8 @@ from __future__ import annotations
 import os
 import sys
 
-
 APP_NAME = "HireDownloader"
-APP_VERSION = "3.0.2"
+APP_VERSION = "4.0.0"
 GITHUB_OWNER = "chamarawickramarathne-spec"
 GITHUB_REPO = "hire-downloader"
 
@@ -21,9 +20,9 @@ def app_dir() -> str:
 
 
 def bundle_dir() -> str:
-    if is_frozen() and hasattr(sys, "_MEIPASS"):
+    if is_frozen():
         return sys._MEIPASS  # type: ignore[attr-defined]
-    return app_dir()
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def resource_path(*parts: str) -> str:
@@ -46,10 +45,11 @@ def is_64bit() -> bool:
 
 
 def installer_asset_name() -> str:
-    return "HireDownloader_64.exe" if is_64bit() else "HireDownloader_32.exe"
+    return f"{APP_NAME}_64.exe" if is_64bit() else f"{APP_NAME}_32.exe"
 
 
-def external_path(name: str) -> str | None:
-    """Return path to an external binary in resources/ if it exists."""
-    p = resource_path(name)
-    return p if os.path.isfile(p) else None
+def ffmpeg_dir() -> str | None:
+    p = resource_path("ffmpeg.exe")
+    if os.path.isfile(p):
+        return os.path.dirname(p)
+    return None

@@ -24,6 +24,17 @@ class FormatOption:
 
 
 @dataclass
+class TorrentFile:
+    index: int
+    name: str
+    size: int
+    selected: bool = True
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
 class DownloadItem:
     id: str
     url: str
@@ -41,6 +52,7 @@ class DownloadItem:
     formats: list[FormatOption] = field(default_factory=list)
     selected_format: str = ""
     total_size: int = 0
+    files: list[TorrentFile] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -60,6 +72,7 @@ class DownloadItem:
             "selected_format": self.selected_format,
             "formats": [asdict(f) for f in self.formats],
             "total_size": self.total_size,
+            "files": [f.to_dict() for f in self.files],
         }
 
 

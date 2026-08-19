@@ -3,10 +3,10 @@
 **App Modification Memory** — update after every change.
 
 ## Overview
-Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS frontend). Dark UI. YouTube, playlists, torrents (aria2c), direct files. Supports **32-bit and 64-bit** Windows builds. External binaries: yt-dlp.exe, ffmpeg.exe, aria2c.exe.
+Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS frontend). Dark UI. YouTube, playlists, torrents (libtorrent), direct files. Supports **32-bit and 64-bit** Windows builds. External binary: ffmpeg.exe only.
 
 ## Current Version
-- **v3.0.2** — MOD 6 (2026-08-19) — Update feature fix
+- **v4.0.0** — MOD 7 (2026-08-19) — Full engine rewrite
 
 ## Update source
 - GitHub: `chamarawickramarathne-spec/hire-downloader`
@@ -20,25 +20,52 @@ Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS 
 - `backend/` — config, util, models, queue_mgr, ytdlp_engine, direct_engine, torrent_engine, settings, history, updater, app (controller + API)
 - `frontend/` — index.html, css/style.css, js/ (app.js, downloads.js, settings.js, utils.js)
 - `media/` — logo.png, icon.ico
-- `resources/` — yt-dlp.exe, ffmpeg.exe, aria2c.exe (gitignored; fetched at build)
+- `resources/` — ffmpeg.exe only (gitignored; fetched at build)
 - `scripts/build_arch.ps1`, `build.bat` — dual-arch PyInstaller + Inno
-- `scripts/fetch_aria2.py`, `scripts/fetch_ffmpeg.py` — binary fetchers
+- `scripts/fetch_ffmpeg.py` — ffmpeg fetcher
 - `build/installer_x64.iss`, `build/installer_x86.iss`
 
 ## Python
 - x64: Python 3.13 → `.venv64`
 - x86: Python 3.12-32 → `.venv32`
-- Only pip deps: pywebview, pyperclip, pyinstaller
+- Pip deps: pywebview, pyperclip, pyinstaller, yt-dlp, libtorrent
 
 ## Architecture
 - pywebview hosts HTML/CSS/JS frontend with Edge WebView2
 - Python API class exposed via `window.pywebview.api`
 - Progress pushed to JS via `window.evaluate_js()`
-- yt-dlp called as subprocess (external .exe) — not imported as Python module
-- Torrents via aria2c.exe subprocess (replaced libtorrent)
+- yt-dlp imported as Python library (`yt_dlp.YoutubeDL`) — not subprocess
+- Torrents via libtorrent Python bindings (replaced aria2c subprocess)
+- Direct downloads via urllib with resume support
 - Settings/history stored as JSON in AppData
+- Torrent resume data stored as .fastresume files in AppData
 
 ## Mod Log
+
+### MOD 7 (v4.0.0) — 2026-08-19 — Full engine rewrite
+- Switched yt-dlp from subprocess to Python library import (`yt_dlp.YoutubeDL`)
+  - Better progress tracking via progress_hooks (no stderr regex parsing)
+  - Cleaner format parsing from info dict
+  - Simplified retry logic (5 attempts vs 13+)
+  - Browser cookie caching for YouTube
+- Replaced aria2c.exe with libtorrent Python bindings
+  - Session/alert loop for real-time torrent state
+  - Resume data persistence (.fastresume files)
+  - Per-file selection for multi-file torrents
+  - Download-only mode (no seeding)
+  - DHT/UPnP/NAT-PMP enabled
+- Added torrent file selection modal to frontend
+- Added TorrentFile dataclass to models
+- Removed aria2c.exe from resources and build scripts
+- Removed yt-dlp.exe from resources (now pip-installed)
+- Kept ffmpeg.exe in resources (yt-dlp merge support)
+- Simplified retry: no cookies → browser cookies → player clients → format fallback
+- Version bumped to 4.0.0
+
+### MOD 6 (v3.0.2) — 2026-08-19 — Update feature fix
+- Fixed install_update: use ShellExecuteW with runas verb for UAC elevation.
+- Fixed JS doUpdate/settingsInstallUpdate: check errors from download/install, show feedback.
+- Removed window.close race condition — user closes app manually after update.
 
 ### MOD 5 (v3.0.1) — 2026-08-19 — YouTube fetch fix
 - Updated yt-dlp.exe to nightly 2026.08.18 (was 2026.07.04, 6 weeks stale).
@@ -49,11 +76,6 @@ Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS 
 - Added `--socket-timeout 30` and `--extractor-retries 3` for network resilience.
 - Stopped persisting `preferred_browser` on success (prevents stale cookie loops).
 - Added `os.makedirs(dest, exist_ok=True)` in `_start_job` before download starts.
-
-### MOD 6 (v3.0.2) — 2026-08-19 — Update feature fix
-- Fixed install_update: use ShellExecuteW with runas verb for UAC elevation.
-- Fixed JS doUpdate/settingsInstallUpdate: check errors from download/install, show feedback.
-- Removed window.close race condition — user closes app manually after update.
 
 ### MOD 4 (v3.0.0) — 2026-08-18 — pywebview rewrite
 - Replaced customtkinter with pywebview + HTML/CSS/JS frontend.
@@ -87,5 +109,5 @@ Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS 
 
 ## Rules
 - Modules under ~300 lines
-- Do not commit venvs, dist, release, Sell, ffmpeg/yt-dlp/aria2c binaries
+- Do not commit venvs, dist, release, Sell, ffmpeg binaries
 - After each mod: AGENTS.md, AGENTS_PLAN.md, medial_support.txt, installers

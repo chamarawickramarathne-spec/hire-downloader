@@ -1,15 +1,19 @@
-HireDownloader - YouTube & Media Downloader
+Hire Downloader v4.0.0
 
-Fast, modern media downloader for Windows. Download videos from YouTube, Facebook, Instagram, TikTok, Twitter/X, Twitch, Vimeo, and 1000+ other sites. Also supports torrent/magnet links and direct HTTP file downloads.
+HireDownloader is a lightweight, fast Windows media downloader built with Python and Edge WebView2. Download videos from YouTube (including playlists), Facebook, Instagram, TikTok, Twitter/X, Twitch, Vimeo, SoundCloud, Dailymotion, and over 1000 other websites using yt-dlp as a Python library. Supports torrent/magnet downloads via libtorrent with resume persistence and per-file selection, and direct HTTP file downloads. Features a sleek dark UI, quality picker with resolution options, download queue with pause/resume, download history, and automatic updates via GitHub. Dual-architecture support (32-bit and 64-bit Windows). No bloatware, no ads - just fast, reliable downloads.
 
-HireDownloader is a lightweight, fast Windows media downloader built with Python and Edge WebView2. Download videos from YouTube (including playlists), Facebook, Instagram, TikTok, Twitter/X, Twitch, Vimeo, SoundCloud, Dailymotion, and over 1000 other websites using yt-dlp technology. Supports torrent/magnet downloads via aria2c and direct HTTP file downloads. Features a sleek dark UI, quality picker with resolution options, download queue with pause/resume, download history, and automatic updates via GitHub. Dual-architecture support (32-bit and 64-bit Windows). No bloatware, no ads - just fast, reliable downloads.
+Download videos from YouTube, Facebook, Instagram, TikTok, Twitter/X, and 1000+ sites with HireDownloader - a fast, free, open-source Windows media downloader. Supports HD/4K video quality selection, YouTube playlist downloads, torrent/magnet links with file selection, and direct file downloads. Built with yt-dlp Python library and libtorrent for maximum compatibility and speed. Features a beautiful dark UI, download queue management, pause/resume, history tracking, and automatic updates. Lightweight (~25MB), no ads, no bloatware. Works on Windows 10/11 (32-bit and 64-bit).
 
-Download videos from YouTube, Facebook, Instagram, TikTok, Twitter/X, and 1000+ sites with HireDownloader - a fast, free, open-source Windows media downloader. Supports HD/4K video quality selection, YouTube playlist downloads, torrent/magnet links, and direct file downloads. Built with yt-dlp and aria2c for maximum compatibility and speed. Features a beautiful dark UI, download queue management, pause/resume, history tracking, and automatic updates. Lightweight (~15MB), no ads, no bloatware. Works on Windows 10/11 (32-bit and 64-bit).
+Download Hire Downloader for free! The best Windows video downloader supporting YouTube, Facebook, Instagram, TikTok, and 1000+ sites. HD/4K quality, playlist downloads, torrent support with file selection, direct downloads, dark UI, no ads. Free and open-source.
 
-hire downloader, video downloader, youtube downloader, facebook downloader, instagram downloader, tiktok downloader, twitter downloader, media downloader, torrent downloader, windows downloader, free video downloader, hd video downloader, 4k downloader, playlist downloader, yt-dlp, aria2c, download manager, video grabber, online video downloader, media grabber
+hire downloader, video downloader, youtube downloader, facebook downloader, instagram downloader, tiktok downloader, twitter downloader, media downloader, torrent downloader, windows downloader, free video downloader, hd video downloader, 4k downloader, playlist downloader, yt-dlp, libtorrent, download manager, video grabber, online video downloader, media grabber
 
-A sleek dark-themed media downloader app interface showing video thumbnails in a download queue with progress bars, quality selection dropdown, and a clean modern UI design
-A Windows desktop application with a dark sidebar navigation, showing a media download in progress with speed and ETA indicators, professional software UI mockup
-A modern download manager interface with a list of YouTube videos being downloaded, showing format options like 1080p 720p 480p, dark mode design with purple accents
-A split-screen image showing a YouTube video on one side and the HireDownloader app downloading it on the other, demonstrating the download workflow
-A minimal dark UI mockup of a media downloader showing a URL input bar at top, download cards with thumbnails and progress bars below, modern Windows app aesthetic
+Create a dark-themed app screenshot showing the Hire Downloader interface with a YouTube video being downloaded, showing the red accent color, progress bar, and quality selector. Modern Windows 11 style.
+
+Create a promotional image showing multiple download types (YouTube, torrent, direct file) with the Hire Downloader logo and dark UI theme. Professional tech product marketing style.
+
+Create a social media banner for Hire Downloader showing download speed and quality features, with a gradient dark background and red accent highlights. Clean modern design.
+
+Create an infographic-style image showing Hire Downloader features: YouTube playlists, torrent files, direct downloads, auto-updates. Dark theme with red accents. minimalist tech style.
+
+Create a before/after style image showing the simplicity of Hire Downloader - paste URL, pick quality, download. Dark UI with red accent color highlights. Clean minimal design.

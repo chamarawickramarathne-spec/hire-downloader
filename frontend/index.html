@@ -15,7 +15,7 @@
           <span class="logo-hire">Hire</span>
           <span class="logo-dl">Downloader</span>
         </div>
-        <span class="version-badge" id="versionBadge">v3.0.0</span>
+        <span class="version-badge" id="versionBadge">v4.0.0</span>
         <span class="queue-info" id="queueInfo"></span>
         <button class="btn btn-ghost btn-sm" id="updateBtn" onclick="app.checkUpdate()">Update</button>
       </div>
@@ -89,7 +89,7 @@
       </div>
 
       <div class="field-label" style="margin-top:16px">About &amp; Updates</div>
-      <div class="about-text" id="aboutText">Hire Downloader v3.0.0</div>
+      <div class="about-text" id="aboutText">Hire Downloader v4.0.0</div>
       <div class="update-row">
         <button class="btn btn-ghost btn-sm" onclick="app.settingsCheckUpdate()">Check</button>
         <button class="btn btn-accent btn-sm" onclick="app.settingsInstallUpdate()">Download &amp; Install</button>
@@ -107,6 +107,20 @@
       <label class="field-label">Paste URLs (one per line)</label>
       <textarea id="importBox" class="field-textarea" rows="10"></textarea>
       <button class="btn btn-accent btn-full" style="margin-top:12px" onclick="app.importUrls()">Import</button>
+    </div>
+  </div>
+
+  <!-- Torrent File Selection Modal -->
+  <div class="modal-overlay" id="torrentFilesModal" style="display:none">
+    <div class="modal">
+      <div class="modal-title">Select Files to Download</div>
+      <div id="torrentFilesList" class="torrent-files-list"></div>
+      <div class="field-row" style="margin-top:12px">
+        <button class="btn btn-ghost btn-sm" onclick="app.selectAllFiles()">Select All</button>
+        <button class="btn btn-ghost btn-sm" onclick="app.selectNoFiles()">Select None</button>
+        <span class="torrent-file-summary" id="torrentFileSummary"></span>
+      </div>
+      <button class="btn btn-accent btn-full" style="margin-top:12px" onclick="app.confirmTorrentFiles()">Download Selected</button>
     </div>
   </div>
 

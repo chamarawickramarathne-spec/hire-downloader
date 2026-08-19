@@ -56,6 +56,12 @@ def format_eta(seconds: float) -> str:
     return f"{h}h {m}m"
 
 
+def format_rate(bytes_per_sec: float) -> str:
+    if bytes_per_sec <= 0:
+        return ""
+    return f"{format_bytes(bytes_per_sec)}/s"
+
+
 _YTDLP_HOSTS = (
     r"youtube\.com",
     r"youtu\.be",
@@ -187,30 +193,18 @@ def friendly_ytdlp_error(err: str) -> str:
     return msg[:240]
 
 
-def parse_ytdlp_progress(line: str) -> dict | None:
-    """Parse yt-dlp stderr progress line. Returns dict with pct/speed/eta or None."""
-    m = re.search(
-        r"\[download\]\s+([\d.]+)%\s+of\s+~?([\d.]+\w+)\s+at\s+([\d.]+\w+/s)\s+ETA\s+(\S+)",
-        line,
-    )
-    if m:
-        return {
-            "percent": float(m.group(1)),
-            "total": m.group(2),
-            "speed": m.group(3),
-            "eta": m.group(4),
-        }
-    m2 = re.search(r"\[download\]\s+([\d.]+)%\s+of\s+~?([\d.]+\w+)", line)
-    if m2:
-        return {"percent": float(m2.group(1)), "total": m2.group(2), "speed": "", "eta": ""}
-    return None
-
-
-def parse_aria2_progress(line: str) -> dict | None:
-    """Parse aria2c stderr progress line."""
-    m = re.search(r"\[DL:([\d.]+\w+)\(([\d.]+\w+)\)\s+CN:(\d+)\s+DL:([\d.]+\w+/s)", line)
-    if m:
-        downloaded = m.group(1)
-        total = m.group(2)
-        return {"downloaded": downloaded, "total": total, "peers": m.group(3), "speed": m.group(4)}
-    return None
+def make_ytdlp_hook(job_id: str, on_progress, on_done=None, on_error=None):
+    """Create a yt-dlp progress_hook callback adapter."""
+    def hook(d):
+        if d.get("status") == "downloading":
+            total = d.get("total_bytes") or d.get("total_bytes_estimate") or 0
+            downloaded = d.get("downloaded_bytes", 0)
+            speed = d.get("speed") or 0
+            eta = d.get("eta") or 0
+            pct = min(100.0, (downloaded / total * 100.0)) if total > 0 else 0.0
+            speed_str = format_rate(speed) if speed else ""
+            eta_str = format_eta(eta) if eta else ""
+            on_progress(job_id, pct, speed_str, eta_str)
+        elif d.get("status") == "finished":
+            on_progress(job_id, 100.0, "", "Finalizing...")
+    return hook

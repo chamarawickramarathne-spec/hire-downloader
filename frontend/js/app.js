@@ -1,6 +1,7 @@
 window.app = {
   downloads: [],
   settings: {},
+  pendingTorrentJobId: null,
 
   async init() {
     const ver = await pycall('get_version');
@@ -48,6 +49,85 @@ window.app = {
 
   async showInFolder(path) { await pycall('open_folder', path); },
 
+  // ── Torrent File Selection ──
+
+  async showTorrentFiles(jobId) {
+    this.pendingTorrentJobId = jobId;
+    const item = this.downloads.find(d => d.id === jobId);
+    if (!item || !item.files || item.files.length === 0) return;
+
+    const list = document.getElementById('torrentFilesList');
+    list.innerHTML = '';
+
+    item.files.forEach((f, i) => {
+      const row = document.createElement('div');
+      row.className = 'torrent-file-row';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = f.selected !== false;
+      cb.dataset.index = f.index;
+      cb.onchange = () => this._updateFileSummary();
+      const name = document.createElement('span');
+      name.className = 'torrent-file-name';
+      name.textContent = f.name;
+      const size = document.createElement('span');
+      size.className = 'torrent-file-size';
+      size.textContent = f.size > 0 ? formatBytes(f.size) : '';
+      row.appendChild(cb);
+      row.appendChild(name);
+      row.appendChild(size);
+      list.appendChild(row);
+    });
+
+    this._updateFileSummary();
+    document.getElementById('torrentFilesModal').style.display = 'flex';
+  },
+
+  _updateFileSummary() {
+    const list = document.getElementById('torrentFilesList');
+    const cbs = list.querySelectorAll('input[type="checkbox"]');
+    let selected = 0;
+    let totalSize = 0;
+    cbs.forEach(cb => {
+      if (cb.checked) {
+        selected++;
+        const item = this.downloads.find(d => d.id === this.pendingTorrentJobId);
+        if (item && item.files) {
+          const f = item.files.find(ff => ff.index === parseInt(cb.dataset.index));
+          if (f) totalSize += f.size;
+        }
+      }
+    });
+    const summary = document.getElementById('torrentFileSummary');
+    summary.textContent = `${selected} selected` + (totalSize > 0 ? ` \u00b7 ${formatBytes(totalSize)}` : '');
+  },
+
+  selectAllFiles() {
+    document.querySelectorAll('#torrentFilesList input[type="checkbox"]').forEach(cb => cb.checked = true);
+    this._updateFileSummary();
+  },
+
+  selectNoFiles() {
+    document.querySelectorAll('#torrentFilesList input[type="checkbox"]').forEach(cb => cb.checked = false);
+    this._updateFileSummary();
+  },
+
+  async confirmTorrentFiles() {
+    const list = document.getElementById('torrentFilesList');
+    const cbs = list.querySelectorAll('input[type="checkbox"]');
+    const selected = [];
+    cbs.forEach(cb => {
+      if (cb.checked) selected.push(parseInt(cb.dataset.index));
+    });
+
+    if (this.pendingTorrentJobId && selected.length > 0) {
+      await pycall('select_torrent_files', this.pendingTorrentJobId, selected);
+    }
+
+    document.getElementById('torrentFilesModal').style.display = 'none';
+    this.pendingTorrentJobId = null;
+  },
+
   // ── Modals ──
 
   showSettings() { SettingsUI.show(this.settings); },
@@ -60,11 +140,7 @@ window.app = {
     SettingsUI.hide();
   },
 
-  async browseFolder() {
-    // pywebview on Windows doesn't have native folder picker via JS,
-    // user types path manually or we can call Python
-    // For now, the input is editable
-  },
+  async browseFolder() {},
 
   showImport() { document.getElementById('importModal').style.display = 'flex'; },
 

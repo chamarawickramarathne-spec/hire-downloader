@@ -66,6 +66,8 @@ window.DownloadsUI = {
       const name = item.file_path ? item.file_path.split(/[/\\]/).pop() : '';
       meta.textContent = 'Complete' + (name ? ' \u2014 ' + name : '');
       meta.classList.add('done');
+    } else if (item.status === 'ready' && item.files && item.files.length > 0) {
+      meta.textContent = `${item.files.length} files \u00b7 ${item.files.reduce((s,f) => s + f.size, 0) > 0 ? formatBytes(item.files.reduce((s,f) => s + f.size, 0)) : ''}`;
     } else if (item.duration) {
       meta.textContent = `${item.status} \u00b7 ${item.duration}`;
     } else {
@@ -118,7 +120,14 @@ window.DownloadsUI = {
       actions.appendChild(b);
     };
 
-    if (item.status === 'ready') addBtn('Start', 'btn-accent', () => app.startDl(item.id));
+    if (item.status === 'ready') {
+      if (item.type === 'torrent' && item.files && item.files.length > 1) {
+        addBtn('Files', 'btn-ghost', () => app.showTorrentFiles(item.id));
+        addBtn('Start', 'btn-accent', () => app.startDl(item.id));
+      } else {
+        addBtn('Start', 'btn-accent', () => app.startDl(item.id));
+      }
+    }
     if (item.status === 'downloading') {
       addBtn('Pause', 'btn-ghost', () => app.pauseDl(item.id));
       addBtn('Cancel', 'btn-ghost', () => app.cancelDl(item.id));

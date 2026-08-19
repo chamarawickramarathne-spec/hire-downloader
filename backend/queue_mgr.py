@@ -1,3 +1,5 @@
+"""Download queue with concurrency control."""
+
 from __future__ import annotations
 
 import threading
@@ -70,6 +72,16 @@ class DownloadQueue:
     def counts(self) -> tuple[int, int]:
         with self._lock:
             return len(self._active), len(self._q)
+
+    def pause_all(self):
+        with self._lock:
+            active = list(self._active)
+            queued = list(self._q)
+        return active, queued
+
+    def resume_all(self, items: list[str]):
+        for jid in items:
+            self.enqueue(jid)
 
     def _emit(self) -> None:
         if self._on_change:

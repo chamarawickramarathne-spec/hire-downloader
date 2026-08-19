@@ -26,27 +26,13 @@ Write-Host "==> [$Arch] Install deps"
 & $Python -m pip install --upgrade pip
 & $Pip install -r requirements.txt
 
-Write-Host "==> [$Arch] Fetch binaries if missing"
+Write-Host "==> [$Arch] Fetch ffmpeg if missing"
 $resDir = Join-Path $Root "resources"
 New-Item -ItemType Directory -Path $resDir -Force | Out-Null
 
-# Fetch ffmpeg
 $ff = Join-Path $resDir "ffmpeg.exe"
 if (-not (Test-Path $ff) -or ((Get-Item $ff).Length -lt 1000000)) {
     & $Python scripts\fetch_ffmpeg.py
-}
-
-# Fetch yt-dlp
-$ytdlp = Join-Path $resDir "yt-dlp.exe"
-if (-not (Test-Path $ytdlp) -or ((Get-Item $ytdlp).Length -lt 1000000)) {
-    Write-Host "  Downloading yt-dlp.exe..."
-    & $Python -c "import urllib.request; urllib.request.urlretrieve('https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe', r'$ytdlp')"
-}
-
-# Fetch aria2c
-$aria2 = Join-Path $resDir "aria2c.exe"
-if (-not (Test-Path $aria2) -or ((Get-Item $aria2).Length -lt 100000)) {
-    & $Python scripts\fetch_aria2.py
 }
 
 Write-Host "==> [$Arch] PyInstaller"
@@ -68,6 +54,8 @@ $piArgs = @(
     "--add-data", $feData,
     "--hidden-import", "webview",
     "--hidden-import", "clr",
+    "--hidden-import", "yt_dlp",
+    "--hidden-import", "libtorrent",
     (Join-Path $Root "main.py")
 )
 

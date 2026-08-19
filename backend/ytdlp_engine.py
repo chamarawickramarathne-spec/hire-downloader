@@ -1,16 +1,28 @@
+"""YouTube/social download engine using yt-dlp as Python library.
+
+Patterns adopted from:
+- Facebook Fetcher: yt_dlp.YoutubeDL import, progress_hooks, simple retry
+- YouTube Fetcher: format selection logic, cookie fallback
+"""
+
 from __future__ import annotations
 
 import json
 import os
 import re
-import subprocess
 import threading
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
-from backend.config import external_path, resource_path
+import yt_dlp
+
+from backend.config import ffmpeg_dir
 from backend.models import FormatOption
-from backend.util import format_duration, friendly_ytdlp_error, parse_ytdlp_progress
-
+from backend.util import (
+    format_duration,
+    friendly_ytdlp_error,
+    make_ytdlp_hook,
+    safe_filename,
+)
 
 ProgressCb = Callable[[str, float, str, str], None]
 DoneCb = Callable[[str, str], None]
@@ -28,30 +40,30 @@ _YT_CLIENTS = [
 ]
 
 
-def _yt_dlp_path() -> str | None:
-    return external_path("yt-dlp.exe")
-
-
-def _ffmpeg_location() -> str | None:
-    p = resource_path("ffmpeg.exe")
-    if os.path.isfile(p):
-        return os.path.dirname(p)
-    return None
-
-
-def _base_args(extra: list[str] | None = None) -> list[str]:
-    args: list[str] = ["--quiet", "--no-playlist", "--socket-timeout", "30", "--extractor-retries", "3"]
-    ff = _ffmpeg_location()
+def _base_opts(extra: dict | None = None) -> dict:
+    opts: dict[str, Any] = {
+        "quiet": True,
+        "no_warnings": True,
+        "no_warnings": True,
+        "socket_timeout": 30,
+        "extractor_retries": 3,
+    }
+    ff = ffmpeg_dir()
     if ff:
-        args += ["--ffmpeg-location", ff]
+        opts["ffmpeg_location"] = ff
     if extra:
-        args += extra
-    return args
+        opts.update(extra)
+    return opts
 
 
-def _with_client_args(client: list[str]) -> list[str]:
-    clients = ",".join(client)
-    return ["--extractor-args", f"youtube:player_client={clients}"]
+def _browser_opts(browser: str | None) -> dict:
+    if not browser:
+        return {}
+    return {"cookiesfrombrowser": (browser,)}
+
+
+def _client_opts(clients: list[str]) -> dict:
+    return {"extractor_args": {"youtube": {"player_client": clients}}}
 
 
 def _info_dict(info: dict) -> dict:
@@ -132,6 +144,7 @@ def _parse_formats(info: dict) -> list[FormatOption]:
         ))
 
     out.append(FormatOption(format_id="ba/b", label="Audio only", ext="m4a", resolution="audio"))
+
     uniq: list[FormatOption] = []
     labels: set[str] = set()
     for fo in out:
@@ -143,52 +156,41 @@ def _parse_formats(info: dict) -> list[FormatOption]:
 
 
 def fetch_info(url: str, preferred_browser: Optional[str] = None) -> tuple[dict, Optional[str]]:
-    yt = _yt_dlp_path()
-    if not yt:
-        raise RuntimeError("yt-dlp.exe not found in resources/")
-
+    """Fetch video metadata using yt-dlp Python library with retry."""
     is_yt = bool(re.search(r"(youtube\.com|youtu\.be|music\.youtube\.com)", url or "", re.I))
     browsers = list(_BROWSERS)
     if preferred_browser:
         browsers = [preferred_browser] + [b for b in browsers if b != preferred_browser]
 
-    attempts: list[tuple[Optional[str], list[str]]] = []
+    attempts: list[tuple[Optional[str], dict]] = []
 
     if is_yt:
         for client in _YT_CLIENTS:
-            attempts.append((None, _with_client_args(client)))
+            attempts.append((None, _client_opts(client)))
         for b in browsers:
-            attempts.append((b, _with_client_args(_YT_CLIENTS[0]) + ["--cookies-from-browser", b]))
-            attempts.append((b, _with_client_args(["android"]) + ["--cookies-from-browser", b]))
+            attempts.append((b, {**_client_opts(_YT_CLIENTS[0]), **_browser_opts(b)}))
+            attempts.append((b, {**_client_opts(["android"]), **_browser_opts(b)}))
     else:
-        attempts.append((None, []))
+        attempts.append((None, {}))
         for b in browsers:
-            attempts.append((b, ["--cookies-from-browser", b]))
+            attempts.append((b, _browser_opts(b)))
 
     last_err = "Failed to fetch video info"
-    for browser, extra_args in attempts:
+    for browser, extra_opts in attempts:
         try:
-            args = [yt] + _base_args(extra_args) + ["--dump-json", url]
-            result = subprocess.run(
-                args, capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace",
-            )
-            if result.returncode != 0:
-                last_err = result.stderr.strip() or result.stdout.strip() or "yt-dlp failed"
-                continue
-            info = json.loads(result.stdout)
+            opts = _base_opts(extra_opts)
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=False)
             if not info:
                 continue
-            result_dict = _info_dict(info)
-            if not result_dict["formats"]:
-                result_dict["formats"] = [
+            result = _info_dict(info)
+            if not result["formats"]:
+                result["formats"] = [
                     FormatOption(format_id="bv*+ba/b", label="Best", ext="mp4", resolution="best")
                 ]
-            return result_dict, browser or preferred_browser
-        except subprocess.TimeoutExpired:
-            last_err = "yt-dlp timed out"
-            continue
-        except json.JSONDecodeError as e:
-            last_err = f"Invalid response: {e}"
+            return result, browser or preferred_browser
+        except yt_dlp.utils.DownloadError as e:
+            last_err = str(e)
             continue
         except Exception as e:
             last_err = str(e)
@@ -198,25 +200,17 @@ def fetch_info(url: str, preferred_browser: Optional[str] = None) -> tuple[dict,
 
 
 def fetch_playlist(url: str, preferred_browser: Optional[str] = None) -> list[dict]:
-    yt = _yt_dlp_path()
-    if not yt:
-        raise RuntimeError("yt-dlp.exe not found in resources/")
-
+    """Fetch playlist entries using yt-dlp Python library."""
     browsers = list(_BROWSERS)
     if preferred_browser:
         browsers = [preferred_browser] + [b for b in browsers if b != preferred_browser]
 
-    def _try(extra: list[str] | None = None) -> list[dict]:
-        args = [yt] + _base_args(extra or []) + [
-            "--flat-playlist", "--dump-json", url,
-        ]
-        result = subprocess.run(
-            args, capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace",
-        )
-        if result.returncode != 0:
-            raise RuntimeError(result.stderr.strip() or "Failed to fetch playlist")
-        info = json.loads(result.stdout)
-        entries = info.get("entries") or []
+    def _try(opts: dict | None = None) -> list[dict]:
+        base = _base_opts(opts or {})
+        base["extract_flat"] = True
+        with yt_dlp.YoutubeDL(base) as ydl:
+            info = ydl.extract_info(url, download=False)
+        entries = info.get("entries") or [] if info else []
         out = []
         for e in entries:
             if not e:
@@ -238,7 +232,7 @@ def fetch_playlist(url: str, preferred_browser: Optional[str] = None) -> list[di
         return out
 
     try:
-        entries = _try(_with_client_args(_YT_CLIENTS[0]))
+        entries = _try(_client_opts(_YT_CLIENTS[0]))
         if entries:
             return entries
     except Exception:
@@ -246,7 +240,7 @@ def fetch_playlist(url: str, preferred_browser: Optional[str] = None) -> list[di
 
     for b in browsers:
         try:
-            entries = _try(_with_client_args(_YT_CLIENTS[0]) + ["--cookies-from-browser", b])
+            entries = _try({**_client_opts(_YT_CLIENTS[0]), **_browser_opts(b)})
             if entries:
                 return entries
         except Exception:
@@ -255,6 +249,8 @@ def fetch_playlist(url: str, preferred_browser: Optional[str] = None) -> list[di
 
 
 class YtDownload:
+    """Download worker using yt-dlp Python library."""
+
     def __init__(
         self,
         job_id: str,
@@ -280,7 +276,7 @@ class YtDownload:
         self.resume = resume
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
-        self._proc: Optional[subprocess.Popen] = None
+        self._ydl: Optional[yt_dlp.YoutubeDL] = None
         self.file_path = ""
 
     def start(self) -> None:
@@ -289,9 +285,9 @@ class YtDownload:
 
     def stop(self) -> None:
         self._stop.set()
-        if self._proc and self._proc.poll() is None:
+        if self._ydl:
             try:
-                self._proc.terminate()
+                self._ydl.cancel_download()
             except Exception:
                 pass
 
@@ -299,105 +295,69 @@ class YtDownload:
         self.stop()
 
     def _run(self) -> None:
-        yt = _yt_dlp_path()
-        if not yt:
-            self.on_error(self.job_id, "yt-dlp.exe not found")
-            return
-
         is_yt = bool(re.search(r"(youtube\.com|youtu\.be)", self.url or "", re.I))
         outtmpl = os.path.join(self.dest_dir, "%(title).200B.%(ext)s")
         fmt = self.format_id if self.format_id not in ("", "best") else "bv*+ba/b"
 
-        base_extra: list[str] = [
-            "--newline", "--progress",
-            "-o", outtmpl,
-            "-f", fmt,
-            "--merge-output-format", "mp4",
-        ]
+        base_extra: dict[str, Any] = {
+            "outtmpl": outtmpl,
+            "format": fmt,
+            "merge_output_format": "mp4",
+            "progress_hooks": [make_ytdlp_hook(self.job_id, self.on_progress)],
+        }
         if self.resume:
-            base_extra.append("--continue")
+            base_extra["continue"] = True
         if is_yt:
-            base_extra += _with_client_args(_YT_CLIENTS[0])
+            base_extra.update(_client_opts(_YT_CLIENTS[0]))
 
         browsers = list(_BROWSERS)
         if self.preferred_browser:
             browsers = [self.preferred_browser] + [b for b in browsers if b != self.preferred_browser]
 
-        attempts: list[tuple[Optional[str], list[str]]] = [(None, base_extra)]
+        attempts: list[tuple[Optional[str], dict]] = [(None, dict(base_extra))]
         for b in browsers:
-            attempts.append((b, base_extra + ["--cookies-from-browser", b]))
+            attempts.append((b, {**base_extra, **_browser_opts(b)}))
         # format fallback
-        fb = list(base_extra)
-        fb_sans_fmt = [a for a in fb if a not in ("-f", fmt)]
-        attempts.append((None, fb_sans_fmt + ["-f", "bv*+ba/b"]))
+        fb = dict(base_extra)
+        fb["format"] = "bv*+ba/b"
+        attempts.append((None, fb))
 
         last_err = "Download failed"
-        for browser, extra_args in attempts:
+        for browser, extra_opts in attempts:
             if self._stop.is_set():
                 return
             try:
-                args = [yt] + _base_args([]) + extra_args + [self.url]
-                self._proc = subprocess.Popen(
-                    args,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    encoding="utf-8",
-                    errors="replace",
-                )
+                opts = _base_opts(extra_opts)
+                opts["outtmpl"] = extra_opts.get("outtmpl", outtmpl)
+                opts["format"] = extra_opts.get("format", fmt)
+                opts["merge_output_format"] = extra_opts.get("merge_output_format", "mp4")
+                opts["progress_hooks"] = extra_opts.get("progress_hooks", [])
+                if extra_opts.get("continue"):
+                    opts["continue"] = True
+                if extra_opts.get("cookiesfrombrowser"):
+                    opts["cookiesfrombrowser"] = extra_opts["cookiesfrombrowser"]
+                if extra_opts.get("extractor_args"):
+                    opts["extractor_args"] = extra_opts["extractor_args"]
 
-                stderr_lines = []
-                assert self._proc.stderr is not None
-                for line in self._proc.stderr:
-                    if self._stop.is_set():
-                        self._proc.terminate()
-                        return
-                    line = line.rstrip("\n\r")
-                    stderr_lines.append(line)
-                    prog = parse_ytdlp_progress(line)
-                    if prog:
-                        self.on_progress(
-                            self.job_id,
-                            min(100.0, prog["percent"]),
-                            prog.get("speed", ""),
-                            prog.get("eta", ""),
-                        )
-                    # Detect destination filename from output
-                    dm = re.search(r"\[download\]\s+Destination:\s+(.+)", line)
-                    if dm:
-                        self.file_path = dm.group(1).strip()
-                        if self.on_dest:
-                            self.on_dest(self.job_id, self.file_path)
-                    # Detect merge
-                    mm = re.search(r"\[Merger\]\s+Merging formats into\s+\"(.+?)\"", line)
-                    if mm:
-                        self.file_path = mm.group(1)
-                        if self.on_dest:
-                            self.on_dest(self.job_id, self.file_path)
-                    # Detect already downloaded
-                    ad = re.search(r"\[download\]\s+(.+)\s+has already been downloaded", line)
-                    if ad:
-                        self.file_path = ad.group(1).strip()
-                        if self.on_dest:
-                            self.on_dest(self.job_id, self.file_path)
+                self._ydl = yt_dlp.YoutubeDL(opts)
+                self._ydl.download([self.url])
 
-                self._proc.wait()
                 if self._stop.is_set():
                     return
 
-                if self._proc.returncode == 0:
-                    # Find the actual output file
-                    path = self.file_path
-                    if path and not os.path.exists(path):
-                        stem, _ = os.path.splitext(path)
-                        for ext in (".mp4", ".mkv", ".webm", ".m4a", ".mp3"):
-                            if os.path.exists(stem + ext):
-                                path = stem + ext
-                                break
-                    self.on_done(self.job_id, path or self.file_path)
-                    return
+                # Find the output file
+                path = self.file_path
+                if path and not os.path.exists(path):
+                    stem, _ = os.path.splitext(path)
+                    for ext in (".mp4", ".mkv", ".webm", ".m4a", ".mp3"):
+                        if os.path.exists(stem + ext):
+                            path = stem + ext
+                            break
+                self.on_done(self.job_id, path or self.file_path)
+                return
 
-                last_err = "\n".join(stderr_lines[-5:]) if stderr_lines else "yt-dlp returned error"
+            except yt_dlp.utils.DownloadError as e:
+                last_err = str(e)
                 continue
             except Exception as e:
                 last_err = str(e)

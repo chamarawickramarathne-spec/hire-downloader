@@ -1,3 +1,9 @@
+"""Direct HTTP file download engine.
+
+Pattern: current Hire Downloader approach, cleaned up.
+Uses urllib with resume support, chunked transfer, and RateMeter.
+"""
+
 from __future__ import annotations
 
 import os
@@ -10,7 +16,6 @@ from urllib.parse import unquote, urlparse
 
 from backend.util import RateMeter, format_bytes, format_eta, safe_filename
 
-
 ProgressCb = Callable[[str, float, str, str], None]
 DoneCb = Callable[[str, str], None]
 ErrorCb = Callable[[str, str], None]
@@ -18,13 +23,13 @@ DestCb = Callable[[str, str], None]
 
 
 def fetch_info(url: str, timeout: int = 15) -> dict:
-    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "HireDownloader/3.0"})
+    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "HireDownloader/4.0"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return _info_from_response(url, resp)
     except urllib.error.HTTPError as e:
         if e.code in (403, 405, 501):
-            req = urllib.request.Request(url, method="GET", headers={"User-Agent": "HireDownloader/3.0"})
+            req = urllib.request.Request(url, method="GET", headers={"User-Agent": "HireDownloader/4.0"})
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 info = _info_from_response(url, resp)
                 resp.close()
@@ -103,7 +108,7 @@ class DirectDownload:
         name = _filename(url, "")
         path = os.path.join(self.dest_dir, name)
         existing = 0
-        headers = {"User-Agent": "HireDownloader/3.0"}
+        headers = {"User-Agent": "HireDownloader/4.0"}
         if self.resume and os.path.exists(path):
             existing = os.path.getsize(path)
             if existing > 0:

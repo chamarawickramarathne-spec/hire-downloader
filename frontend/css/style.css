@@ -353,3 +353,39 @@ body {
 .about-text { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
 .update-row { display: flex; gap: 8px; }
 .update-status { font-size: 12px; color: var(--text-dim); margin-top: 6px; min-height: 18px; }
+
+/* Torrent File Selection */
+.torrent-files-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  background: var(--bg);
+}
+.torrent-file-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.torrent-file-row input[type="checkbox"] {
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+.torrent-file-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.torrent-file-size {
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+.torrent-file-summary {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-left: auto;
+}

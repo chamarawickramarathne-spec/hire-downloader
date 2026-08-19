@@ -1,3 +1,8 @@
+"""pywebview bridge API — orchestrates engines, settings, history, queue.
+
+Public methods are callable from JavaScript via window.pywebview.api.
+"""
+
 from __future__ import annotations
 
 import json
@@ -8,16 +13,14 @@ from datetime import datetime
 from typing import Any, Optional
 
 from backend import direct_engine, history as history_mod, ytdlp_engine, torrent_engine
-from backend.config import APP_VERSION, GITHUB_OWNER, GITHUB_REPO, app_data_dir
-from backend.models import DownloadItem, FormatOption, HistoryItem
+from backend.config import APP_VERSION, app_data_dir
+from backend.models import DownloadItem, FormatOption, HistoryItem, TorrentFile
 from backend.queue_mgr import DownloadQueue
 from backend.settings import load_settings, save_settings
 from backend.util import badge_for, detect_type, friendly_ytdlp_error, is_playlist_url, new_id, uses_ytdlp
 
 
 class Api:
-    """Exposed to JavaScript via pywebview js_api."""
-
     def __init__(self) -> None:
         self._window: Any = None
         self.settings = load_settings()
@@ -27,8 +30,17 @@ class Api:
         self.queue = DownloadQueue(self.settings.get("max_concurrent", 1))
         self._workers: dict[str, object] = {}
         self._lock = threading.Lock()
-        self._last_schedule = ""
+        self.torrent_engine: Optional[torrent_engine.TorrentEngine] = None
+        self._init_torrent_engine()
         self.queue.set_handlers(self._start_job, self._queue_changed)
+
+    def _init_torrent_engine(self):
+        if torrent_engine.torrent_available():
+            try:
+                self.torrent_engine = torrent_engine.TorrentEngine(app_data_dir())
+                self.torrent_engine.start()
+            except Exception:
+                self.torrent_engine = None
 
     def set_window(self, window: Any) -> None:
         self._window = window
@@ -45,6 +57,8 @@ class Api:
         self.settings.update(data)
         save_settings(self.settings)
         self.queue.set_max(int(self.settings.get("max_concurrent", 1)))
+        if self.torrent_engine and self.settings.get("download_rate"):
+            self.torrent_engine.apply_speed_limits(int(self.settings["download_rate"]))
         return json.dumps({"ok": True})
 
     def add_url(self, url: str) -> str:
@@ -55,10 +69,10 @@ class Api:
         if dtype == "youtube" and is_playlist_url(url):
             threading.Thread(target=self._add_playlist, args=(url,), daemon=True).start()
             return json.dumps({"ok": True, "type": "playlist"})
-        if dtype == "torrent" and not torrent_engine.torrent_available():
+        if dtype == "torrent" and not self.torrent_engine:
             item = self._make_item(url, "torrent")
             item.status = "error"
-            item.error = "Torrents unavailable (aria2c.exe not found)."
+            item.error = "Torrents unavailable (libtorrent not installed)."
             self._register(item)
             self._push_downloads()
             return json.dumps({"error": item.error})
@@ -94,10 +108,8 @@ class Api:
         if not it:
             return json.dumps({"error": "Not found"})
         w = self._workers.get(job_id)
-        if it.type == "torrent":
-            torrent_engine_ref = self._workers.get("_torrent_engine")
-            if torrent_engine_ref:
-                torrent_engine_ref.pause(job_id)
+        if it.type == "torrent" and isinstance(w, torrent_engine.TorrentDownload):
+            w.pause()
         elif w is not None and hasattr(w, "pause"):
             w.pause()
         self._workers.pop(job_id, None)
@@ -111,16 +123,10 @@ class Api:
         it = self.items.get(job_id)
         if not it:
             return json.dumps({"error": "Not found"})
-        if it.type == "torrent":
-            # Re-download with continue
-            it.status = "queued"
-            it.error = ""
-            self._push_downloads()
-            self.queue.enqueue(job_id)
-            return json.dumps({"ok": True})
         it.status = "queued"
         it.error = ""
-        setattr(it, "_resume", True)
+        if it.type != "torrent":
+            setattr(it, "_resume", True)
         self._push_downloads()
         self.queue.enqueue(job_id)
         return json.dumps({"ok": True})
@@ -143,6 +149,12 @@ class Api:
     def remove_download(self, job_id: str) -> str:
         if job_id in self.items and self.items[job_id].status in ("downloading", "queued", "paused"):
             self.cancel_download(job_id)
+        if job_id in self.items and self.items[job_id].type == "torrent" and self.torrent_engine:
+            snaps = self.torrent_engine.snapshot()
+            for s in snaps:
+                if s.get("job_id") == job_id:
+                    self.torrent_engine.remove(s["id"])
+                    break
         self.items.pop(job_id, None)
         if job_id in self.order:
             self.order.remove(job_id)
@@ -182,7 +194,22 @@ class Api:
             if os.path.isfile(path):
                 subprocess.run(["explorer", "/select,", os.path.normpath(path)], check=False)
             else:
-                os.startfile(path)  # noqa: S606
+                os.startfile(path)
+        return json.dumps({"ok": True})
+
+    def get_torrent_files(self, job_id: str) -> str:
+        it = self.items.get(job_id)
+        if not it:
+            return json.dumps({"error": "Not found"})
+        files = [f.to_dict() for f in it.files]
+        return json.dumps({"ok": True, "files": files})
+
+    def select_torrent_files(self, job_id: str, selected_indices: list[int]) -> str:
+        it = self.items.get(job_id)
+        if not it:
+            return json.dumps({"error": "Not found"})
+        for f in it.files:
+            f.selected = f.index in selected_indices
         return json.dumps({"ok": True})
 
     def check_update(self) -> str:
@@ -275,7 +302,7 @@ class Api:
 
     def _add_playlist(self, url: str) -> None:
         ph = self._make_item(url, "youtube")
-        ph.title = "Loading playlist\u2026"
+        ph.title = "Loading playlist..."
         self._register(ph)
         self._push_downloads()
         try:
@@ -336,6 +363,12 @@ class Api:
                     FormatOption(format_id="bv*+ba/b", label="Best", ext="mp4", resolution="best")
                 ]
             it.selected_format = it.formats[0].format_id if it.formats else "bv*+ba/b"
+            files_raw = info.get("files") or []
+            if files_raw:
+                it.files = [
+                    TorrentFile(index=i, name=f.get("name", ""), size=f.get("size", 0), selected=True)
+                    for i, f in enumerate(files_raw)
+                ]
             self._push_downloads()
         except Exception as e:
             err = friendly_ytdlp_error(str(e)) if uses_ytdlp(item.type) else str(e)
@@ -425,13 +458,8 @@ class Api:
             )
             self._workers[job_id] = w
             w.start()
-        elif it.type == "torrent":
-            te = torrent_engine.AriaDownload(
-                job_id, it.url, dest, on_progress, on_done, on_error, on_dest,
-            )
-            self._workers[job_id] = te
-            self._workers["_torrent_engine"] = te
-            te.start()
+        elif it.type == "torrent" and self.torrent_engine:
+            self._start_torrent_job(it, job_id, dest, on_progress, on_done, on_error, on_dest)
         else:
             w = direct_engine.DirectDownload(
                 job_id, it.url, dest, on_progress, on_done, on_error, on_dest, resume=resume,
@@ -439,11 +467,37 @@ class Api:
             self._workers[job_id] = w
             w.start()
 
+    def _start_torrent_job(self, it, job_id, dest, on_progress, on_done, on_error, on_dest):
+        try:
+            if it.url.endswith(".torrent") and os.path.isfile(it.url):
+                te = self.torrent_engine.add_torrent_file(it.url, dest)
+            else:
+                te = self.torrent_engine.add_magnet(it.url, dest)
+            te.job_id = job_id
+
+            if it.files:
+                priorities = [1 if f.selected else 0 for f in it.files]
+                self.torrent_engine.set_file_priorities(te.id, priorities)
+
+            w = torrent_engine.TorrentDownload(
+                job_id, self.torrent_engine, te.id,
+                on_progress, on_done, on_error, on_dest,
+            )
+            self._workers[job_id] = w
+            w.start()
+        except Exception as e:
+            on_error(job_id, str(e))
+
     def shutdown(self) -> None:
         for jid in list(self._workers.keys()):
             if jid.startswith("_"):
                 continue
             try:
                 self.cancel_download(jid)
+            except Exception:
+                pass
+        if self.torrent_engine:
+            try:
+                self.torrent_engine.stop()
             except Exception:
                 pass
