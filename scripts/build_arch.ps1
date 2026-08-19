@@ -55,7 +55,6 @@ $piArgs = @(
     "--hidden-import", "webview",
     "--hidden-import", "clr",
     "--hidden-import", "yt_dlp",
-    "--hidden-import", "libtorrent",
     (Join-Path $Root "main.py")
 )
 

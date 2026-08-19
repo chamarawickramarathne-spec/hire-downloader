@@ -2,7 +2,6 @@
 
 Public methods are callable from JavaScript via window.pywebview.api.
 """
-
 from __future__ import annotations
 
 import json
@@ -10,14 +9,14 @@ import os
 import subprocess
 import threading
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
-from backend import direct_engine, history as history_mod, ytdlp_engine, torrent_engine
-from backend.config import APP_VERSION, app_data_dir
-from backend.models import DownloadItem, FormatOption, HistoryItem, TorrentFile
+from backend import direct_engine, history as history_mod, ytdlp_engine
+from backend.config import APP_VERSION
+from backend.models import DownloadItem, FormatOption, HistoryItem
 from backend.queue_mgr import DownloadQueue
 from backend.settings import load_settings, save_settings
-from backend.util import badge_for, detect_type, friendly_ytdlp_error, is_playlist_url, new_id, uses_ytdlp
+from backend.util import badge_for, detect_type, friendly_ytdlp_error, new_id, uses_ytdlp
 
 
 class Api:
@@ -30,17 +29,7 @@ class Api:
         self.queue = DownloadQueue(self.settings.get("max_concurrent", 1))
         self._workers: dict[str, object] = {}
         self._lock = threading.Lock()
-        self.torrent_engine: Optional[torrent_engine.TorrentEngine] = None
-        self._init_torrent_engine()
         self.queue.set_handlers(self._start_job, self._queue_changed)
-
-    def _init_torrent_engine(self):
-        if torrent_engine.torrent_available():
-            try:
-                self.torrent_engine = torrent_engine.TorrentEngine(app_data_dir())
-                self.torrent_engine.start()
-            except Exception:
-                self.torrent_engine = None
 
     def set_window(self, window: Any) -> None:
         self._window = window
@@ -57,8 +46,6 @@ class Api:
         self.settings.update(data)
         save_settings(self.settings)
         self.queue.set_max(int(self.settings.get("max_concurrent", 1)))
-        if self.torrent_engine and self.settings.get("download_rate"):
-            self.torrent_engine.apply_speed_limits(int(self.settings["download_rate"]))
         return json.dumps({"ok": True})
 
     def add_url(self, url: str) -> str:
@@ -66,16 +53,8 @@ class Api:
         if not url:
             return json.dumps({"error": "Empty URL"})
         dtype = detect_type(url)
-        if dtype == "youtube" and is_playlist_url(url):
-            threading.Thread(target=self._add_playlist, args=(url,), daemon=True).start()
-            return json.dumps({"ok": True, "type": "playlist"})
-        if dtype == "torrent" and not self.torrent_engine:
-            item = self._make_item(url, "torrent")
-            item.status = "error"
-            item.error = "Torrents unavailable (libtorrent not installed)."
-            self._register(item)
-            self._push_downloads()
-            return json.dumps({"error": item.error})
+        if dtype == "unsupported":
+            return json.dumps({"error": "This URL type is not supported."})
         item = self._make_item(url, dtype)
         self._register(item)
         self._push_downloads()
@@ -108,9 +87,7 @@ class Api:
         if not it:
             return json.dumps({"error": "Not found"})
         w = self._workers.get(job_id)
-        if it.type == "torrent" and isinstance(w, torrent_engine.TorrentDownload):
-            w.pause()
-        elif w is not None and hasattr(w, "pause"):
+        if w is not None and hasattr(w, "pause"):
             w.pause()
         self._workers.pop(job_id, None)
         it.status = "paused"
@@ -125,8 +102,7 @@ class Api:
             return json.dumps({"error": "Not found"})
         it.status = "queued"
         it.error = ""
-        if it.type != "torrent":
-            setattr(it, "_resume", True)
+        setattr(it, "_resume", True)
         self._push_downloads()
         self.queue.enqueue(job_id)
         return json.dumps({"ok": True})
@@ -149,12 +125,6 @@ class Api:
     def remove_download(self, job_id: str) -> str:
         if job_id in self.items and self.items[job_id].status in ("downloading", "queued", "paused"):
             self.cancel_download(job_id)
-        if job_id in self.items and self.items[job_id].type == "torrent" and self.torrent_engine:
-            snaps = self.torrent_engine.snapshot()
-            for s in snaps:
-                if s.get("job_id") == job_id:
-                    self.torrent_engine.remove(s["id"])
-                    break
         self.items.pop(job_id, None)
         if job_id in self.order:
             self.order.remove(job_id)
@@ -195,21 +165,6 @@ class Api:
                 subprocess.run(["explorer", "/select,", os.path.normpath(path)], check=False)
             else:
                 os.startfile(path)
-        return json.dumps({"ok": True})
-
-    def get_torrent_files(self, job_id: str) -> str:
-        it = self.items.get(job_id)
-        if not it:
-            return json.dumps({"error": "Not found"})
-        files = [f.to_dict() for f in it.files]
-        return json.dumps({"ok": True, "files": files})
-
-    def select_torrent_files(self, job_id: str, selected_indices: list[int]) -> str:
-        it = self.items.get(job_id)
-        if not it:
-            return json.dumps({"error": "Not found"})
-        for f in it.files:
-            f.selected = f.index in selected_indices
         return json.dumps({"ok": True})
 
     def check_update(self) -> str:
@@ -263,89 +218,40 @@ class Api:
             if item.id not in self.order:
                 self.order.insert(0, item.id)
 
-    def _push_downloads(self) -> None:
+    def _eval(self, js: str) -> None:
         if self._window:
-            data = json.dumps([it.to_dict() for it in self.list_items()])
             try:
-                self._window.evaluate_js(f"window.app && window.app.updateDownloads({data})")
+                self._window.evaluate_js(js)
             except Exception:
                 pass
+
+    def _push_downloads(self) -> None:
+        data = json.dumps([it.to_dict() for it in self.list_items()])
+        self._eval(f"window.app && window.app.updateDownloads({data})")
 
     def _push_history(self) -> None:
-        if self._window:
-            data = json.dumps([h.to_dict() for h in self.history[:50]])
-            try:
-                self._window.evaluate_js(f"window.app && window.app.updateHistory({data})")
-            except Exception:
-                pass
+        data = json.dumps([h.to_dict() for h in self.history[:50]])
+        self._eval(f"window.app && window.app.updateHistory({data})")
 
     def _push_queue(self, active: int, queued: int) -> None:
-        if self._window:
-            try:
-                self._window.evaluate_js(
-                    f"window.app && window.app.updateQueue({active},{queued})"
-                )
-            except Exception:
-                pass
+        self._eval(f"window.app && window.app.updateQueue({active},{queued})")
 
     def _push_update_progress(self, stage: str, received: int, total: int) -> None:
-        if self._window:
-            try:
-                self._window.evaluate_js(
-                    f"window.app && window.app.updateProgress('{stage}',{received},{total})"
-                )
-            except Exception:
-                pass
+        self._eval(f"window.app && window.app.updateProgress('{stage}',{received},{total})")
 
     def _queue_changed(self, active: int, queued: int) -> None:
         self._push_queue(active, queued)
 
-    def _add_playlist(self, url: str) -> None:
-        ph = self._make_item(url, "youtube")
-        ph.title = "Loading playlist..."
-        self._register(ph)
-        self._push_downloads()
-        try:
-            entries = ytdlp_engine.fetch_playlist(url, self.settings.get("preferred_browser"))
-            self.items.pop(ph.id, None)
-            if ph.id in self.order:
-                self.order.remove(ph.id)
-            if not entries:
-                raise RuntimeError("Empty playlist")
-            for e in entries:
-                it = self._make_item(e["url"], "youtube")
-                it.title = e.get("title") or e["url"]
-                it.thumbnail = e.get("thumbnail") or ""
-                it.duration = e.get("duration") or ""
-                self._register(it)
-            self._push_downloads()
-            for e in entries:
-                for iid, it in list(self.items.items()):
-                    if it.url == e["url"] and it.status == "fetching":
-                        threading.Thread(target=self._fetch, args=(iid,), daemon=True).start()
-        except Exception as err:
-            if ph.id in self.items:
-                self.items[ph.id].status = "error"
-                self.items[ph.id].error = str(err)
-                self._push_downloads()
-
     def _fetch(self, job_id: str) -> None:
         item = self.items.get(job_id)
-        if not item:
-            return
+        if not item: return
         try:
             if uses_ytdlp(item.type):
-                info, browser = ytdlp_engine.fetch_info(
-                    item.url, self.settings.get("preferred_browser")
-                )
-            elif item.type == "torrent":
-                info = torrent_engine.fetch_info(item.url)
+                info, _ = ytdlp_engine.fetch_info(item.url, self.settings.get("preferred_browser"))
             else:
                 info = direct_engine.fetch_info(item.url)
-
             it = self.items.get(job_id)
-            if not it:
-                return
+            if not it: return
             it.status = "ready"
             it.title = info.get("title") or it.url
             it.thumbnail = info.get("thumbnail") or ""
@@ -355,149 +261,63 @@ class Api:
             if fmts and isinstance(fmts[0], FormatOption):
                 it.formats = fmts
             elif fmts:
-                it.formats = [
-                    FormatOption(**f) if isinstance(f, dict) else f for f in fmts
-                ]
+                it.formats = [FormatOption(**f) if isinstance(f, dict) else f for f in fmts]
             else:
-                it.formats = [
-                    FormatOption(format_id="bv*+ba/b", label="Best", ext="mp4", resolution="best")
-                ]
+                it.formats = [FormatOption(format_id="bv*+ba/b", label="Best", ext="mp4", resolution="best")]
             it.selected_format = it.formats[0].format_id if it.formats else "bv*+ba/b"
-            files_raw = info.get("files") or []
-            if files_raw:
-                it.files = [
-                    TorrentFile(index=i, name=f.get("name", ""), size=f.get("size", 0), selected=True)
-                    for i, f in enumerate(files_raw)
-                ]
             self._push_downloads()
         except Exception as e:
             err = friendly_ytdlp_error(str(e)) if uses_ytdlp(item.type) else str(e)
             it = self.items.get(job_id)
-            if it:
-                it.status = "error"
-                it.error = err
-                self._push_downloads()
+            if it: it.status = "error"; it.error = err; self._push_downloads()
 
     def _start_job(self, job_id: str) -> None:
         it = self.items.get(job_id)
-        if not it:
-            self.queue.job_finished(job_id)
-            return
-
-        it.status = "downloading"
-        self._push_downloads()
-        dest = self.settings.get("download_path")
-        os.makedirs(dest, exist_ok=True)
-        resume = bool(getattr(it, "_resume", False))
-        setattr(it, "_resume", False)
+        if not it: self.queue.job_finished(job_id); return
+        it.status = "downloading"; self._push_downloads()
+        dest = self.settings.get("download_path"); os.makedirs(dest, exist_ok=True)
+        resume = bool(getattr(it, "_resume", False)); setattr(it, "_resume", False)
 
         def on_progress(jid, pct, speed, eta):
             x = self.items.get(jid)
             if x:
-                x.progress = pct
-                x.speed = speed
-                x.eta = eta
-                x.status = "downloading"
-            if self._window:
-                try:
-                    self._window.evaluate_js(
-                        f"window.app && window.app.updateDownloadProgress('{jid}',{pct},'{speed}','{eta}')"
-                    )
-                except Exception:
-                    pass
+                x.progress = pct; x.speed = speed; x.eta = eta; x.status = "downloading"
+            self._eval(f"window.app && window.app.updateDownloadProgress('{jid}',{pct},'{speed}','{eta}')")
 
         def on_dest(jid, path):
             x = self.items.get(jid)
             if x:
                 x.file_path = path
-            if self._window:
-                try:
-                    safe_path = path.replace("\\", "\\\\").replace("'", "\\'")
-                    self._window.evaluate_js(
-                        f"window.app && window.app.updateDownloadDest('{jid}','{safe_path}')"
-                    )
-                except Exception:
-                    pass
+            safe_path = path.replace("\\", "\\\\").replace("'", "\\'")
+            self._eval(f"window.app && window.app.updateDownloadDest('{jid}','{safe_path}')")
 
         def on_done(jid, path):
             x = self.items.get(jid)
             if x:
-                x.status = "completed"
-                x.progress = 100
-                x.file_path = path or x.file_path
-                x.speed = ""
-                hist = HistoryItem(
-                    id=x.id, url=x.url, type=x.type, title=x.title,
-                    file_path=x.file_path,
-                    completed_at=datetime.now().isoformat(timespec="seconds"),
-                    badge=x.badge,
-                )
+                x.status = "completed"; x.progress = 100; x.file_path = path or x.file_path; x.speed = ""
+                hist = HistoryItem(id=x.id, url=x.url, type=x.type, title=x.title,
+                    file_path=x.file_path, completed_at=datetime.now().isoformat(timespec="seconds"), badge=x.badge)
                 self.history.insert(0, hist)
                 history_mod.save_history(self.history)
             self._workers.pop(jid, None)
-            self._push_downloads()
-            self._push_history()
-            self.queue.job_finished(jid)
+            self._push_downloads(); self._push_history(); self.queue.job_finished(jid)
 
         def on_error(jid, err):
             x = self.items.get(jid)
             if x:
-                x.status = "error"
-                x.error = err
-                x.speed = ""
+                x.status = "error"; x.error = err; x.speed = ""
             self._workers.pop(jid, None)
-            self._push_downloads()
-            self.queue.job_finished(jid)
+            self._push_downloads(); self.queue.job_finished(jid)
 
         if uses_ytdlp(it.type):
-            w = ytdlp_engine.YtDownload(
-                job_id, it.url, dest, it.selected_format or "bv*+ba/b",
-                on_progress, on_done, on_error, on_dest,
-                preferred_browser=self.settings.get("preferred_browser"),
-                resume=resume,
-            )
-            self._workers[job_id] = w
-            w.start()
-        elif it.type == "torrent" and self.torrent_engine:
-            self._start_torrent_job(it, job_id, dest, on_progress, on_done, on_error, on_dest)
+            w = ytdlp_engine.YtDownload(job_id, it.url, dest, it.selected_format or "bv*+ba/b",
+                on_progress, on_done, on_error, on_dest, preferred_browser=self.settings.get("preferred_browser"), resume=resume)
         else:
-            w = direct_engine.DirectDownload(
-                job_id, it.url, dest, on_progress, on_done, on_error, on_dest, resume=resume,
-            )
-            self._workers[job_id] = w
-            w.start()
-
-    def _start_torrent_job(self, it, job_id, dest, on_progress, on_done, on_error, on_dest):
-        try:
-            if it.url.endswith(".torrent") and os.path.isfile(it.url):
-                te = self.torrent_engine.add_torrent_file(it.url, dest)
-            else:
-                te = self.torrent_engine.add_magnet(it.url, dest)
-            te.job_id = job_id
-
-            if it.files:
-                priorities = [1 if f.selected else 0 for f in it.files]
-                self.torrent_engine.set_file_priorities(te.id, priorities)
-
-            w = torrent_engine.TorrentDownload(
-                job_id, self.torrent_engine, te.id,
-                on_progress, on_done, on_error, on_dest,
-            )
-            self._workers[job_id] = w
-            w.start()
-        except Exception as e:
-            on_error(job_id, str(e))
+            w = direct_engine.DirectDownload(job_id, it.url, dest, on_progress, on_done, on_error, on_dest, resume=resume)
+        self._workers[job_id] = w; w.start()
 
     def shutdown(self) -> None:
         for jid in list(self._workers.keys()):
-            if jid.startswith("_"):
-                continue
-            try:
-                self.cancel_download(jid)
-            except Exception:
-                pass
-        if self.torrent_engine:
-            try:
-                self.torrent_engine.stop()
-            except Exception:
-                pass
+            if not jid.startswith("_"):
+                try: self.cancel_download(jid)
+                except Exception: pass

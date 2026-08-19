@@ -1,65 +1,57 @@
-# Hire Downloader — MOD 5 Plan: YouTube Fetch Fix
+# Hire Downloader — MOD 10 Plan: Remove YouTube Support
 
 ## Goal
-Fix YouTube video fetching failures caused by stale yt-dlp, broken retry, deprecated player clients, and poor error handling.
+Remove all YouTube-specific code to simplify the app. YouTube fetch has persistent issues; removing it lets the app focus on what works: Facebook, Instagram, TikTok, and 1000+ other social sites via yt-dlp, plus direct HTTP downloads.
 
 ## Status
 - [x] Plan written
-- [x] Update yt-dlp.exe to latest (2026.07.04 → latest)
-- [x] Fix retryDl() to re-fetch via Python API
-- [x] Update _YT_CLIENTS list + priority order
-- [x] Fix _base_args() — remove --no-warnings, add --socket-timeout/--extractor-retries
-- [x] Fix preferred_browser persistence (don't persist stale cookies)
-- [x] Add os.makedirs in _start_job for download dir
+- [x] Remove YouTube from _YTDLP_HOSTS in util.py
+- [x] Remove is_playlist_url() from util.py
+- [x] Remove YouTube detection from detect_type() — returns "unsupported"
+- [x] Remove "youtube" from uses_ytdlp()
+- [x] Remove "YT" badge from badge_for()
+- [x] Rewrite ytdlp_engine.py — remove _YT_CLIENTS, _client_opts, fetch_playlist, YouTube branches
+- [x] Remove _add_playlist() and playlist routing from app.py
+- [x] Update frontend placeholder and empty state text
+- [x] Bump version to 4.2.0 (config, installers, UI)
 - [x] Update AGENTS.md, AGENTS_PLAN.md, medial_support.txt
-- [ ] Build + test
-
-## Root Causes
-1. **yt-dlp.exe v2026.07.04** — 6 weeks old, YouTube breaks yt-dlp weekly
-2. **retryDl() JS bug** — sets status client-side without calling Python, item has no formats
-3. **`android_sdkless` deprecated** — silently fails
-4. **`--no-warnings` suppresses diagnostics** — errors become generic "yt-dlp failed"
-5. **Client priority suboptimal** — `tv` is most reliable but tried 4th
-6. **No network resilience** — missing timeout/retry flags
-7. **`preferred_browser` persistence** — stale cookies waste attempts
+- [x] Build x64 + x86 installers
+- [x] Git commit + release
 
 ## Changes Done
 
-### 1. Update yt-dlp.exe
-- Fetched latest release from GitHub yt-dlp/yt-dlp
+### 1. backend/util.py
+- Removed YouTube entries from `_YTDLP_HOSTS`
+- Removed `is_playlist_url()` function entirely
+- `detect_type()`: no more YouTube check — YouTube URLs fall through to "direct" (which will fail gracefully)
+- `uses_ytdlp()`: only returns True for "social" (removed "youtube")
+- `badge_for()`: removed "YT" case
 
-### 2. frontend/js/app.js — Fix retryDl()
-- Removed client-side status manipulation
-- Now calls `pycall('add_url', item.url)` to re-fetch via Python
+### 2. backend/ytdlp_engine.py (249 lines, was 371)
+- Removed `_YT_CLIENTS` list and `_client_opts()` function
+- Removed YouTube-specific branches in `fetch_info()` and `YtDownload._run()`
+- Removed `fetch_playlist()` entirely
+- Removed `_info_dict()` YouTube playlist entry handling
+- Simplified to: base attempt → browser cookie fallback → format fallback
 
-### 3. backend/ytdlp_engine.py — Update _YT_CLIENTS
-```python
-_YT_CLIENTS = [
-    ["tv"],           # Most reliable unauthenticated
-    ["mweb"],         # Mobile web, less restricted
-    ["ios", "web"],   # iOS client combo
-    ["android", "web"],
-    ["web"],
-]
-```
-Removed `android_sdkless`. Moved `tv` to first position.
+### 3. backend/app.py
+- Removed `is_playlist_url` import
+- Removed playlist routing in `add_url()`
+- Removed `_add_playlist()` method entirely
 
-### 4. backend/ytdlp_engine.py — Fix _base_args()
-- Removed `--no-warnings`
-- Added `--socket-timeout 30` and `--extractor-retries 3`
+### 4. frontend/index.html
+- Placeholder: "Paste Facebook, Instagram, or direct URL..."
+- Empty state: "Facebook · Instagram · TikTok · 1000+ sites · direct files"
+- Version badge + about text: v4.2.0
 
-### 5. backend/app.py — Fix preferred_browser
-- Removed auto-persistence of browser on success
-- Browser cookies can go stale; fresh each session is safer
-
-### 6. backend/app.py — Add os.makedirs in _start_job
-- Added `os.makedirs(dest, exist_ok=True)` before download starts
+### 5. Version bump
+- config.py: APP_VERSION → "4.2.0"
+- Both .iss installers: MyAppVersion → "4.2.0"
 
 ## Version
-MOD 5 — v3.0.1
+MOD 10 — v4.2.0
 
 ## Notes
-- yt-dlp update is the single most impactful fix
-- retryDl bug meant ALL failed fetches could never be retried properly
-- Client order matters: YouTube rate-limits differently per client
-- `tv` client is now first — most reliable unauthenticated client in 2026
+- App now supports: Facebook, Instagram, TikTok, Twitter/X, Vimeo, Reddit, Twitch, Dailymotion, SoundCloud, and direct HTTP downloads
+- YouTube URLs pasted will get "direct" type which will fail gracefully with an error
+- yt-dlp is still used for all social sites — just no YouTube-specific logic

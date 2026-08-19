@@ -1,15 +1,12 @@
-"""YouTube/social download engine using yt-dlp as Python library.
+"""Social download engine using yt-dlp as Python library.
 
-Patterns adopted from:
-- Facebook Fetcher: yt_dlp.YoutubeDL import, progress_hooks, simple retry
-- YouTube Fetcher: format selection logic, cookie fallback
+Handles Facebook, Instagram, TikTok, Twitter/X, Vimeo, Reddit, etc.
+Direct HTTP downloads handled separately by direct_engine.
 """
 
 from __future__ import annotations
 
-import json
 import os
-import re
 import threading
 from typing import Any, Callable, Optional
 
@@ -17,12 +14,7 @@ import yt_dlp
 
 from backend.config import ffmpeg_dir
 from backend.models import FormatOption
-from backend.util import (
-    format_duration,
-    friendly_ytdlp_error,
-    make_ytdlp_hook,
-    safe_filename,
-)
+from backend.util import format_duration, friendly_ytdlp_error, make_ytdlp_hook, safe_filename
 
 ProgressCb = Callable[[str, float, str, str], None]
 DoneCb = Callable[[str, str], None]
@@ -31,22 +23,14 @@ DestCb = Callable[[str, str], None]
 
 _BROWSERS = ["edge", "chrome", "brave", "vivaldi", "firefox"]
 
-_YT_CLIENTS = [
-    ["tv"],
-    ["mweb"],
-    ["ios", "web"],
-    ["android", "web"],
-    ["web"],
-]
-
 
 def _base_opts(extra: dict | None = None) -> dict:
     opts: dict[str, Any] = {
         "quiet": True,
         "no_warnings": True,
-        "no_warnings": True,
         "socket_timeout": 30,
         "extractor_retries": 3,
+        "ignore_noform": True,
     }
     ff = ffmpeg_dir()
     if ff:
@@ -62,15 +46,9 @@ def _browser_opts(browser: str | None) -> dict:
     return {"cookiesfrombrowser": (browser,)}
 
 
-def _client_opts(clients: list[str]) -> dict:
-    return {"extractor_args": {"youtube": {"player_client": clients}}}
-
-
 def _info_dict(info: dict) -> dict:
     if not info:
         raise RuntimeError("No video info returned")
-    if info.get("_type") == "playlist" and info.get("entries"):
-        info = next((e for e in info["entries"] if e), info)
     return {
         "title": info.get("title") or info.get("fulltitle") or "Unknown",
         "thumbnail": info.get("thumbnail") or "",
@@ -156,23 +134,16 @@ def _parse_formats(info: dict) -> list[FormatOption]:
 
 
 def fetch_info(url: str, preferred_browser: Optional[str] = None) -> tuple[dict, Optional[str]]:
-    """Fetch video metadata using yt-dlp Python library with retry."""
-    is_yt = bool(re.search(r"(youtube\.com|youtu\.be|music\.youtube\.com)", url or "", re.I))
+    """Fetch video metadata using yt-dlp with browser cookie retry."""
     browsers = list(_BROWSERS)
     if preferred_browser:
         browsers = [preferred_browser] + [b for b in browsers if b != preferred_browser]
 
-    attempts: list[tuple[Optional[str], dict]] = []
-
-    if is_yt:
-        for client in _YT_CLIENTS:
-            attempts.append((None, _client_opts(client)))
-        for b in browsers:
-            attempts.append((b, {**_client_opts(_YT_CLIENTS[0]), **_browser_opts(b)}))
-            attempts.append((b, {**_client_opts(["android"]), **_browser_opts(b)}))
-    else:
-        attempts.append((None, {}))
-        for b in browsers:
+    attempts: list[tuple[Optional[str], dict]] = [(None, {})]
+    if preferred_browser:
+        attempts.append((preferred_browser, _browser_opts(preferred_browser)))
+    for b in browsers[:2]:
+        if b != preferred_browser:
             attempts.append((b, _browser_opts(b)))
 
     last_err = "Failed to fetch video info"
@@ -197,55 +168,6 @@ def fetch_info(url: str, preferred_browser: Optional[str] = None) -> tuple[dict,
             continue
 
     raise RuntimeError(friendly_ytdlp_error(last_err))
-
-
-def fetch_playlist(url: str, preferred_browser: Optional[str] = None) -> list[dict]:
-    """Fetch playlist entries using yt-dlp Python library."""
-    browsers = list(_BROWSERS)
-    if preferred_browser:
-        browsers = [preferred_browser] + [b for b in browsers if b != preferred_browser]
-
-    def _try(opts: dict | None = None) -> list[dict]:
-        base = _base_opts(opts or {})
-        base["extract_flat"] = True
-        with yt_dlp.YoutubeDL(base) as ydl:
-            info = ydl.extract_info(url, download=False)
-        entries = info.get("entries") or [] if info else []
-        out = []
-        for e in entries:
-            if not e:
-                continue
-            eid = e.get("id") or ""
-            eurl = e.get("url") or e.get("webpage_url") or (
-                f"https://www.youtube.com/watch?v={eid}" if eid else ""
-            )
-            if eurl and not str(eurl).startswith("http"):
-                eurl = f"https://www.youtube.com/watch?v={eurl}"
-            if not eurl:
-                continue
-            out.append({
-                "url": eurl,
-                "title": e.get("title") or "Unknown",
-                "thumbnail": e.get("thumbnail") or "",
-                "duration": format_duration(e.get("duration") or 0) if e.get("duration") else "",
-            })
-        return out
-
-    try:
-        entries = _try(_client_opts(_YT_CLIENTS[0]))
-        if entries:
-            return entries
-    except Exception:
-        pass
-
-    for b in browsers:
-        try:
-            entries = _try({**_client_opts(_YT_CLIENTS[0]), **_browser_opts(b)})
-            if entries:
-                return entries
-        except Exception:
-            continue
-    raise RuntimeError("Failed to fetch playlist")
 
 
 class YtDownload:
@@ -295,7 +217,6 @@ class YtDownload:
         self.stop()
 
     def _run(self) -> None:
-        is_yt = bool(re.search(r"(youtube\.com|youtu\.be)", self.url or "", re.I))
         outtmpl = os.path.join(self.dest_dir, "%(title).200B.%(ext)s")
         fmt = self.format_id if self.format_id not in ("", "best") else "bv*+ba/b"
 
@@ -307,8 +228,6 @@ class YtDownload:
         }
         if self.resume:
             base_extra["continue"] = True
-        if is_yt:
-            base_extra.update(_client_opts(_YT_CLIENTS[0]))
 
         browsers = list(_BROWSERS)
         if self.preferred_browser:
@@ -317,7 +236,6 @@ class YtDownload:
         attempts: list[tuple[Optional[str], dict]] = [(None, dict(base_extra))]
         for b in browsers:
             attempts.append((b, {**base_extra, **_browser_opts(b)}))
-        # format fallback
         fb = dict(base_extra)
         fb["format"] = "bv*+ba/b"
         attempts.append((None, fb))
@@ -336,8 +254,6 @@ class YtDownload:
                     opts["continue"] = True
                 if extra_opts.get("cookiesfrombrowser"):
                     opts["cookiesfrombrowser"] = extra_opts["cookiesfrombrowser"]
-                if extra_opts.get("extractor_args"):
-                    opts["extractor_args"] = extra_opts["extractor_args"]
 
                 self._ydl = yt_dlp.YoutubeDL(opts)
                 self._ydl.download([self.url])
@@ -345,7 +261,6 @@ class YtDownload:
                 if self._stop.is_set():
                     return
 
-                # Find the output file
                 path = self.file_path
                 if path and not os.path.exists(path):
                     stem, _ = os.path.splitext(path)

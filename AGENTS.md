@@ -3,10 +3,38 @@
 **App Modification Memory** — update after every change.
 
 ## Overview
-Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS frontend). Dark UI. YouTube, playlists, torrents (libtorrent), direct files. Supports **32-bit and 64-bit** Windows builds. External binary: ffmpeg.exe only.
+Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS frontend). Dark UI. Facebook, Instagram, TikTok, Twitter/X, and 1000+ social sites via yt-dlp. Direct file downloads. Supports **32-bit and 64-bit** Windows builds. External binary: ffmpeg.exe only.
 
 ## Current Version
-- **v4.0.0** — MOD 7 (2026-08-19) — Full engine rewrite
+- **v4.2.0** — MOD 10 (2026-08-19) — Remove YouTube support
+
+## Mod Log
+
+### MOD 10 (v4.2.0) — 2026-08-19 — Remove YouTube support
+- Removed all YouTube-specific code from ytdlp_engine.py (player clients, playlist fetch, YouTube cookie logic).
+- Removed YouTube from `_YTDLP_HOSTS` in util.py — YouTube URLs now rejected.
+- Removed `is_playlist_url()` from util.py.
+- Removed `_add_playlist()` and playlist routing from app.py.
+- Removed `"youtube"` type from `detect_type()` and `uses_ytdlp()`.
+- Removed `"YT"` badge from `badge_for()`.
+- App now supports: Facebook, Instagram, TikTok, Twitter/X, Vimeo, Reddit, Twitch, Dailymotion, SoundCloud, and direct HTTP downloads.
+- Bumped version to 4.2.0.
+
+### MOD 9 (v4.1.0) — 2026-08-19 — Remove torrent feature
+- Removed entire torrent/magnet download engine (`torrent_engine.py` deleted).
+- Removed libtorrent dependency from `requirements.txt`.
+- Removed `TorrentFile` dataclass from `models.py`.
+- Removed torrent detection in `util.py` (`detect_type` returns `"unsupported"` for magnet/.torrent URLs).
+- Magnet/torrent URLs now show clear error: "Torrent/magnet downloads are not supported."
+- Removed torrent file selection modal from frontend (HTML, JS, CSS).
+- Removed torrent hidden-import from PyInstaller build scripts.
+- Bumped version to 4.1.0 across config, installers, and UI.
+
+### MOD 8 (v4.0.1) — 2026-08-19 — Fix YouTube playlist false-positive
+- Fixed `is_playlist_url()` treating watch URLs with `list=` param as playlists.
+- `watch?v=...&list=RD...` and `youtu.be/...?list=...` now correctly treated as single video.
+- Only dedicated playlist pages (`/playlist?list=...`) trigger playlist mode.
+- Prevents YouTube Mix/Radio URLs from downloading entire playlist instead of one video.
 
 ## Update source
 - GitHub: `chamarawickramarathne-spec/hire-downloader`
@@ -17,28 +45,26 @@ Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS 
 
 ## Structure
 - `main.py` — entry (pywebview window)
-- `backend/` — config, util, models, queue_mgr, ytdlp_engine, direct_engine, torrent_engine, settings, history, updater, app (controller + API)
+- `backend/` — config, util, models, queue_mgr, ytdlp_engine, direct_engine, settings, history, updater, app (controller + API)
 - `frontend/` — index.html, css/style.css, js/ (app.js, downloads.js, settings.js, utils.js)
 - `media/` — logo.png, icon.ico
 - `resources/` — ffmpeg.exe only (gitignored; fetched at build)
-- `scripts/build_arch.ps1`, `build.bat` — dual-arch PyInstaller + Inno
+- `scripts/build_arch.ps1` — dual-arch PyInstaller + Inno
 - `scripts/fetch_ffmpeg.py` — ffmpeg fetcher
 - `build/installer_x64.iss`, `build/installer_x86.iss`
 
 ## Python
 - x64: Python 3.13 → `.venv64`
 - x86: Python 3.12-32 → `.venv32`
-- Pip deps: pywebview, pyperclip, pyinstaller, yt-dlp, libtorrent
+- Pip deps: pywebview, pyperclip, pyinstaller, yt-dlp
 
 ## Architecture
 - pywebview hosts HTML/CSS/JS frontend with Edge WebView2
 - Python API class exposed via `window.pywebview.api`
 - Progress pushed to JS via `window.evaluate_js()`
 - yt-dlp imported as Python library (`yt_dlp.YoutubeDL`) — not subprocess
-- Torrents via libtorrent Python bindings (replaced aria2c subprocess)
 - Direct downloads via urllib with resume support
 - Settings/history stored as JSON in AppData
-- Torrent resume data stored as .fastresume files in AppData
 
 ## Mod Log
 

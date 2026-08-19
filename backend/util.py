@@ -63,9 +63,6 @@ def format_rate(bytes_per_sec: float) -> str:
 
 
 _YTDLP_HOSTS = (
-    r"youtube\.com",
-    r"youtu\.be",
-    r"music\.youtube\.com",
     r"facebook\.com",
     r"fb\.watch",
     r"fb\.com",
@@ -94,31 +91,18 @@ def is_ytdlp_url(url: str) -> bool:
 def detect_type(url: str) -> str:
     u = (url or "").strip()
     if re.match(r"^(magnet:|udp:)", u, re.I) or re.search(r"\.torrent(\?|$)", u, re.I):
-        return "torrent"
-    if re.search(r"(youtube\.com|youtu\.be|music\.youtube\.com)", u, re.I):
-        return "youtube"
+        return "unsupported"
     if is_ytdlp_url(u):
         return "social"
     return "direct"
 
 
 def uses_ytdlp(dtype: str) -> bool:
-    return dtype in ("youtube", "social")
-
-
-def is_playlist_url(url: str) -> bool:
-    u = url or ""
-    if re.search(r"(facebook|instagram|tiktok|twitter|x\.com)", u, re.I):
-        return False
-    return bool(re.search(r"[?&]list=", u, re.I))
+    return dtype == "social"
 
 
 def badge_for(dtype: str, url: str = "") -> str:
     u = (url or "").lower()
-    if dtype == "youtube":
-        return "YT"
-    if dtype == "torrent":
-        return "TOR"
     if dtype == "social":
         if "facebook" in u or "fb.watch" in u or "fb.com" in u:
             return "FB"

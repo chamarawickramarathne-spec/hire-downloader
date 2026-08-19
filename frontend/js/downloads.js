@@ -121,12 +121,7 @@ window.DownloadsUI = {
     };
 
     if (item.status === 'ready') {
-      if (item.type === 'torrent' && item.files && item.files.length > 1) {
-        addBtn('Files', 'btn-ghost', () => app.showTorrentFiles(item.id));
-        addBtn('Start', 'btn-accent', () => app.startDl(item.id));
-      } else {
-        addBtn('Start', 'btn-accent', () => app.startDl(item.id));
-      }
+      addBtn('Start', 'btn-accent', () => app.startDl(item.id));
     }
     if (item.status === 'downloading') {
       addBtn('Pause', 'btn-ghost', () => app.pauseDl(item.id));
