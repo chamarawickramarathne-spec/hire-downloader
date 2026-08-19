@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 
-echo === Hire Downloader v3.0 dual-arch build ===
+echo === Hire Downloader v4.0.0 dual-arch build ===
 
 echo.
 echo --- x64 ---
