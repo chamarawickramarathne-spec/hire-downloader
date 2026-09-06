@@ -15,7 +15,7 @@
           <span class="logo-hire">Hire</span>
           <span class="logo-dl">Downloader</span>
         </div>
-        <span class="version-badge" id="versionBadge">v4.2.0</span>
+        <span class="version-badge" id="versionBadge">v4.3.0</span>
         <span class="queue-info" id="queueInfo"></span>
         <button class="btn btn-ghost btn-sm" id="updateBtn" onclick="app.checkUpdate()">Update</button>
       </div>
@@ -73,23 +73,8 @@
       <input type="range" id="maxConcSlider" min="1" max="10" value="1"
         oninput="document.getElementById('maxConcVal').textContent=this.value" class="slider">
 
-      <div class="field-label" style="margin-top:16px">Scheduled Downloads</div>
-      <label class="check-label">
-        <input type="checkbox" id="schedEnabled"> Enable daily schedule
-      </label>
-      <div class="field-row" style="gap:12px">
-        <div>
-          <span class="field-sublabel">Start</span>
-          <input type="text" id="schedStart" class="field-input field-input-sm" value="01:00">
-        </div>
-        <div>
-          <span class="field-sublabel">Stop</span>
-          <input type="text" id="schedEnd" class="field-input field-input-sm" value="06:00">
-        </div>
-      </div>
-
       <div class="field-label" style="margin-top:16px">About &amp; Updates</div>
-      <div class="about-text" id="aboutText">Hire Downloader v4.2.0</div>
+      <div class="about-text" id="aboutText">Hire Downloader v4.3.0</div>
       <div class="update-row">
         <button class="btn btn-ghost btn-sm" onclick="app.settingsCheckUpdate()">Check</button>
         <button class="btn btn-accent btn-sm" onclick="app.settingsInstallUpdate()">Download &amp; Install</button>

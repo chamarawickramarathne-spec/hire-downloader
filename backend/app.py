@@ -11,6 +11,8 @@ import threading
 from datetime import datetime
 from typing import Any
 
+import webview
+
 from backend import direct_engine, history as history_mod, ytdlp_engine
 from backend.config import APP_VERSION
 from backend.models import DownloadItem, FormatOption, HistoryItem
@@ -43,7 +45,11 @@ class Api:
         return dict(self.settings)
 
     def save_settings(self, data: dict) -> str:
-        self.settings.update(data)
+        self.settings.update(data or {})
+        dl = self.settings.get("download_path")
+        if not dl or not isinstance(dl, str) or not os.path.isabs(dl):
+            from backend.settings import DEFAULT_SETTINGS
+            self.settings["download_path"] = DEFAULT_SETTINGS["download_path"]
         save_settings(self.settings)
         self.queue.set_max(int(self.settings.get("max_concurrent", 1)))
         return json.dumps({"ok": True})
@@ -60,6 +66,21 @@ class Api:
         self._push_downloads()
         threading.Thread(target=self._fetch, args=(item.id,), daemon=True).start()
         return json.dumps({"ok": True, "id": item.id})
+
+    def retry_download(self, job_id: str, url: str = "") -> str:
+        it = self.items.get(job_id)
+        if not it:
+            return json.dumps({"error": "Not found"})
+        it.status = "fetching"
+        it.error = ""
+        it.progress = 0.0
+        it.speed = ""
+        it.eta = ""
+        it.formats = []
+        it.file_path = ""
+        self._push_downloads()
+        threading.Thread(target=self._fetch, args=(it.id,), daemon=True).start()
+        return json.dumps({"ok": True})
 
     def add_urls(self, urls: list) -> str:
         for u in urls:
@@ -140,6 +161,18 @@ class Api:
     def get_downloads(self) -> str:
         return json.dumps([it.to_dict() for it in self.list_items()])
 
+    def create_folder_dialog(self) -> str:
+        if not self._window:
+            return json.dumps([])
+        try:
+            selected = self._window.create_file_dialog(
+                webview.FileDialog.FOLDER,
+                allow_multiple=False,
+            )
+            return json.dumps(list(selected or []))
+        except Exception:
+            return json.dumps([])
+
     def get_history(self) -> str:
         return json.dumps([h.to_dict() for h in self.history[:50]])
 
@@ -160,11 +193,16 @@ class Api:
         return json.dumps({"active": active, "queued": queued})
 
     def open_folder(self, path: str) -> str:
-        if os.path.exists(path):
-            if os.path.isfile(path):
-                subprocess.run(["explorer", "/select,", os.path.normpath(path)], check=False)
+        base = os.path.abspath(os.path.normpath(self.settings.get("download_path") or ""))
+        target = os.path.abspath(os.path.normpath(path or ""))
+        # Only allow opening paths that are inside the configured download folder.
+        if not base or not target or os.path.commonpath([base, target]) != base:
+            return json.dumps({"ok": False, "error": "Location outside download folder"})
+        if os.path.exists(target):
+            if os.path.isfile(target):
+                subprocess.run(["explorer", "/select,", target], check=False)
             else:
-                os.startfile(path)
+                os.startfile(target)
         return json.dumps({"ok": True})
 
     def check_update(self) -> str:
@@ -185,19 +223,23 @@ class Api:
             def prog(stage, rec, total):
                 self._push_update_progress(stage, rec, total)
 
-            path = updater.download_update(info["download_url"], info["latest_version"], prog)
+            path = updater.download_update(
+                info["download_url"], info["latest_version"], prog,
+                expected_sha256=info.get("expected_sha256", ""),
+            )
             return json.dumps({"ok": True, "path": path})
         except Exception as e:
             return json.dumps({"error": str(e)})
 
-    def install_update(self, path: str = "") -> str:
+    def install_update(self) -> str:
         try:
             from backend import updater
-            installer = path or updater.get_downloaded_installer()
+            # Only install the managed, verified download — never a JS-supplied path.
+            installer = updater.get_downloaded_installer()
             if installer:
                 updater.install_update(installer)
                 return json.dumps({"ok": True})
-            return json.dumps({"error": "No installer found"})
+            return json.dumps({"error": "No verified installer found"})
         except Exception as e:
             return json.dumps({"error": str(e)})
 
@@ -225,19 +267,22 @@ class Api:
             except Exception:
                 pass
 
+    def _call(self, method: str, *args: Any) -> None:
+        """Call a JS method with JSON-serialized args (no string interpolation)."""
+        payload = json.dumps(args)
+        self._eval(f"window.app && window.app.{method}.apply(null,{payload})")
+
     def _push_downloads(self) -> None:
-        data = json.dumps([it.to_dict() for it in self.list_items()])
-        self._eval(f"window.app && window.app.updateDownloads({data})")
+        self._call("updateDownloads", [it.to_dict() for it in self.list_items()])
 
     def _push_history(self) -> None:
-        data = json.dumps([h.to_dict() for h in self.history[:50]])
-        self._eval(f"window.app && window.app.updateHistory({data})")
+        self._call("updateHistory", [h.to_dict() for h in self.history[:50]])
 
     def _push_queue(self, active: int, queued: int) -> None:
-        self._eval(f"window.app && window.app.updateQueue({active},{queued})")
+        self._call("updateQueue", active, queued)
 
     def _push_update_progress(self, stage: str, received: int, total: int) -> None:
-        self._eval(f"window.app && window.app.updateProgress('{stage}',{received},{total})")
+        self._call("updateProgress", stage, received, total)
 
     def _queue_changed(self, active: int, queued: int) -> None:
         self._push_queue(active, queued)
@@ -275,21 +320,26 @@ class Api:
         it = self.items.get(job_id)
         if not it: self.queue.job_finished(job_id); return
         it.status = "downloading"; self._push_downloads()
-        dest = self.settings.get("download_path"); os.makedirs(dest, exist_ok=True)
+        self.queue.job_started(job_id)
+        dest = self.settings.get("download_path") or os.path.join(os.path.expanduser("~"), "Downloads")
+        try:
+            os.makedirs(dest, exist_ok=True)
+        except OSError:
+            dest = os.path.join(os.path.expanduser("~"), "Downloads")
+            os.makedirs(dest, exist_ok=True)
         resume = bool(getattr(it, "_resume", False)); setattr(it, "_resume", False)
 
         def on_progress(jid, pct, speed, eta):
             x = self.items.get(jid)
             if x:
                 x.progress = pct; x.speed = speed; x.eta = eta; x.status = "downloading"
-            self._eval(f"window.app && window.app.updateDownloadProgress('{jid}',{pct},'{speed}','{eta}')")
+            self._call("updateDownloadProgress", jid, pct, speed, eta)
 
         def on_dest(jid, path):
             x = self.items.get(jid)
             if x:
                 x.file_path = path
-            safe_path = path.replace("\\", "\\\\").replace("'", "\\'")
-            self._eval(f"window.app && window.app.updateDownloadDest('{jid}','{safe_path}')")
+            self._call("updateDownloadDest", jid, path)
 
         def on_done(jid, path):
             x = self.items.get(jid)

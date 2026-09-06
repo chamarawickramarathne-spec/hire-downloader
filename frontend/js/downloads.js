@@ -46,6 +46,17 @@ window.DownloadsUI = {
     return card;
   },
 
+  updateProgress(card, item) {
+    const meta = card.querySelector('.dl-meta');
+    meta.className = 'dl-meta speed';
+    meta.textContent = `${item.progress.toFixed(1)}%  ${item.speed}  ${item.eta ? 'ETA ' + item.eta : ''}`.trim();
+    const bar = card.querySelector('.progress-fill');
+    const barWrap = card.querySelector('.progress-bar');
+    barWrap.style.display = 'block';
+    bar.style.width = item.progress + '%';
+    bar.classList.remove('complete');
+  },
+
   updateCard(card, item) {
     card.className = `dl-card status-${item.status}`;
 

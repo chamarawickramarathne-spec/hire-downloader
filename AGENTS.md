@@ -6,9 +6,21 @@
 Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS frontend). Dark UI. Facebook, Instagram, TikTok, Twitter/X, and 1000+ social sites via yt-dlp. Direct file downloads. Supports **32-bit and 64-bit** Windows builds. External binary: ffmpeg.exe only.
 
 ## Current Version
-- **v4.2.0** — MOD 10 (2026-08-19) — Remove YouTube support
+- **v4.3.0** — MOD 11 (2026-09-06) — Security audit remediation
 
 ## Mod Log
+
+### MOD 11 (v4.3.0) — 2026-09-06 — Security audit remediation
+- **Security — JS injection (critical):** replaced all untrusted-string interpolation into `evaluate_js` with JSON-serialized args (`Api._call`). `speed`, `eta`, `path`, and update-progress strings from remote sources can no longer inject JS into the pywebview bridge (was an RCE path via `open_folder`/`install_update`).
+- **Security — update integrity:** downloaded installers now get SHA-256 verification when a published hash exists, Authenticode signature check (invalid signatures rejected), and lenient-but-warned acceptance with a PE sanity check when no hash is published yet. `install_update` no longer accepts arbitrary JS-supplied paths — only the managed, verified download may be installed.
+- **Security — `open_folder`:** restricts launches to paths inside the configured download folder.
+- **Security — scheme allow-list:** `detect_type`/`add_url` only accept `http`/`https`; `file://`, `ftp://`, etc. are rejected as unsupported.
+- **Security — `download_path` validation:** settings can only store an absolute path; falls back to default on invalid input.
+- **Security — atom feed:** `_check_atom` validates the release tag format; download URL stays on the fixed GitHub release-asset path.
+- **Build — ffmpeg arch correctness:** `resources/ffmpeg_x64.exe` and `resources/ffmpeg_x86.exe` replace the single `ffmpeg.exe`; `config.ffmpeg_dir()` picks by process arch. SHA-256 verification added to `fetch_ffmpeg.py` (x64 pinned to `fb4565...`; x86 hash TODO — no trusted 32-bit ffmpeg verified yet).
+- **Git hygiene:** removed `release/HireDownloader_32.exe` / `_64.exe` from git tracking; added `release/` to `.gitignore`. Installer assets are no longer committed; AGENTS §11/§12 flow updated.
+- **Bugs fixed:** `retryDl` resets the existing item (no duplicate card); removed dead schedule settings (`schedule_enabled/start/end`); implemented Settings "Browse" via `create_file_dialog(FOLDER)`; progress updates are now targeted DOM updates (no full re-render per tick); resume falls back to fresh write when server ignores `Range`; `queue.job_started` accounting wired up; valid unique AppId GUIDs in both `.iss` files.
+- Bumped version to 4.3.0 (config, installers, UI).
 
 ### MOD 10 (v4.2.0) — 2026-08-19 — Remove YouTube support
 - Removed all YouTube-specific code from ytdlp_engine.py (player clients, playlist fetch, YouTube cookie logic).
@@ -38,7 +50,7 @@ Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS 
 
 ## Update source
 - GitHub: `chamarawickramarathne-spec/hire-downloader`
-- Installer assets (fixed names, tracked in git):
+- Installer assets (fixed names, published on GitHub releases, NOT tracked in git):
   - `HireDownloader_64.exe`
   - `HireDownloader_32.exe`
 - Updater picks asset by process arch
@@ -48,7 +60,7 @@ Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS 
 - `backend/` — config, util, models, queue_mgr, ytdlp_engine, direct_engine, settings, history, updater, app (controller + API)
 - `frontend/` — index.html, css/style.css, js/ (app.js, downloads.js, settings.js, utils.js)
 - `media/` — logo.png, icon.ico
-- `resources/` — ffmpeg.exe only (gitignored; fetched at build)
+- `resources/` — ffmpeg_x64.exe / ffmpeg_x86.exe (gitignored; fetched at build)
 - `scripts/build_arch.ps1` — dual-arch PyInstaller + Inno
 - `scripts/fetch_ffmpeg.py` — ffmpeg fetcher
 - `build/installer_x64.iss`, `build/installer_x86.iss`
@@ -129,9 +141,10 @@ Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS 
 
 ## Build / release
 1. Bump `APP_VERSION` in `backend/config.py` + installer iss versions
-2. `build.bat` (or `scripts\build_arch.ps1 -Arch x64`)
-3. Commit + push (include `release/HireDownloader_32.exe` and `release/HireDownloader_64.exe`)
-4. `gh release create vX.Y.Z release/HireDownloader_64.exe release/HireDownloader_32.exe`
+2. Build: `scripts\build_arch.ps1 -Arch x64` and `-Arch x86` (or `build.bat`)
+3. `build.bat` installers land in `release/` (gitignored — do NOT commit)
+4. `gh release create vX.Y.Z release/HireDownloader_64.exe release/HireDownloader_32.exe --notes "HireDownloader_64.exe: <SHA256>`nHireDownloader_32.exe: <SHA256>"`
+5. The updater reads the SHA-256 from the release body for each asset and hard-fails on mismatch; if absent it warns (PE sanity + signature). Get hashes via `Get-FileHash release\*.exe -Algorithm SHA256`.
 
 ## Rules
 - Modules under ~300 lines

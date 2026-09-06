@@ -126,18 +126,22 @@ class DirectDownload:
 
             name = _filename(resp.geturl() or url, resp.headers.get("Content-Disposition", ""))
             path = os.path.join(self.dest_dir, name)
+            resumed = False
             if self.resume and os.path.exists(path) and resp.status == 206:
                 existing = os.path.getsize(path)
+                resumed = True
             else:
+                # Server ignored our Range request (200 full body): start fresh
+                # to avoid appending a partial file to a full re-download.
                 existing = 0
 
             cl = int(resp.headers.get("Content-Length") or 0)
-            total = existing + cl if resp.status == 206 else cl
+            total = existing + cl if resumed else cl
             self.file_path = path
             if self.on_dest:
                 self.on_dest(self.job_id, path)
 
-            mode = "ab" if existing and resp.status == 206 else "wb"
+            mode = "ab" if resumed else "wb"
             meter = RateMeter()
             downloaded = existing
             with open(path, mode) as f:

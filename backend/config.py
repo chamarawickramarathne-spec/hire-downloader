@@ -4,7 +4,7 @@ import os
 import sys
 
 APP_NAME = "HireDownloader"
-APP_VERSION = "4.2.0"
+APP_VERSION = "4.3.0"
 GITHUB_OWNER = "chamarawickramarathne-spec"
 GITHUB_REPO = "hire-downloader"
 
@@ -49,6 +49,9 @@ def installer_asset_name() -> str:
 
 
 def ffmpeg_dir() -> str | None:
+    p = resource_path(f"ffmpeg_{'x64' if is_64bit() else 'x86'}.exe")
+    if os.path.isfile(p):
+        return os.path.dirname(p)
     p = resource_path("ffmpeg.exe")
     if os.path.isfile(p):
         return os.path.dirname(p)

@@ -30,17 +30,25 @@ Write-Host "==> [$Arch] Fetch ffmpeg if missing"
 $resDir = Join-Path $Root "resources"
 New-Item -ItemType Directory -Path $resDir -Force | Out-Null
 
-$ff = Join-Path $resDir "ffmpeg.exe"
+$ffFmt = if ($Arch -eq "x64") { "ffmpeg_x64.exe" } else { "ffmpeg_x86.exe" }
+$ff = Join-Path $resDir $ffFmt
 if (-not (Test-Path $ff) -or ((Get-Item $ff).Length -lt 1000000)) {
     & $Python scripts\fetch_ffmpeg.py
+}
+if (-not (Test-Path $ff) -or ((Get-Item $ff).Length -lt 1000000)) {
+    Write-Host "[WARN] $Arch ffmpeg missing - video+audio merge may fail"
 }
 
 Write-Host "==> [$Arch] PyInstaller"
 if (Test-Path "dist\$Arch") { Remove-Item -Recurse -Force "dist\$Arch" }
 $icon = Join-Path $Root "media\icon.ico"
 $mediaData = (Join-Path $Root "media") + ";media"
-$resData = $resDir + ";resources"
 $feData = (Join-Path $Root "frontend") + ";frontend"
+$resFile = Join-Path $Root "resources\$ffFmt"
+$resArgs = @()
+if (Test-Path $resFile) {
+    $resArgs = @("--add-data", ($resFile + ";resources"))
+}
 $piArgs = @(
     "--noconfirm", "--clean", "--windowed",
     "--name", $DistName,
@@ -50,8 +58,8 @@ $piArgs = @(
     "--icon", $icon,
     "--paths", $Root,
     "--add-data", $mediaData,
-    "--add-data", $resData,
-    "--add-data", $feData,
+    "--add-data", $feData
+) + $resArgs + @(
     "--hidden-import", "webview",
     "--hidden-import", "clr",
     "--hidden-import", "yt_dlp",

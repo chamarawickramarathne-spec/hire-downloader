@@ -1,12 +1,12 @@
-Hire Downloader v4.2.0
+Hire Downloader v4.3.0
 
-HireDownloader is a lightweight, fast Windows media downloader built with Python and Edge WebView2. Download videos from Facebook, Instagram, TikTok, Twitter/X, Twitch, Vimeo, SoundCloud, Dailymotion, Reddit, and over 1000 other websites using yt-dlp as a Python library. Supports direct HTTP file downloads with resume. Features a sleek dark UI, quality picker with resolution options, download queue with pause/resume, download history, and automatic updates via GitHub. Dual-architecture support (32-bit and 64-bit Windows). No bloatware, no ads - just fast, reliable downloads.
+HireDownloader is a lightweight, fast Windows media downloader built with Python and Edge WebView2. Download videos from Facebook, Instagram, TikTok, Twitter/X, Twitch, Vimeo, SoundCloud, Dailymotion, Reddit, and over 1000 other websites using yt-dlp as a Python library. Supports direct HTTP file downloads with resume. Features a sleek dark UI, quality picker with resolution options, download queue with pause/resume, download history, and automatic updates via GitHub with verified installer integrity (checksum + signature checks). Dual-architecture support (32-bit and 64-bit Windows). No bloatware, no ads - just fast, reliable, secure downloads.
 
-Download videos from Facebook, Instagram, TikTok, Twitter/X, and 1000+ sites with HireDownloader - a fast, free, open-source Windows media downloader. Supports HD/4K video quality selection and direct file downloads. Built with yt-dlp Python library for maximum compatibility and speed. Features a beautiful dark UI, download queue management, pause/resume, history tracking, and automatic updates. Lightweight (~20MB), no ads, no bloatware. Works on Windows 10/11 (32-bit and 64-bit).
+Download videos from Facebook, Instagram, TikTok, Twitter/X, and 1000+ sites with HireDownloader - a fast, free, open-source Windows media downloader. Supports HD/4K video quality selection and direct file downloads. Built with yt-dlp Python library for maximum compatibility and speed. Features a beautiful dark UI, download queue management, pause/resume, history tracking, and secure automatic updates that verify installer authenticity before install. Lightweight (~20MB), no ads, no bloatware. Works on Windows 10/11 (32-bit and 64-bit).
 
-Download Hire Downloader for free! The best Windows video downloader supporting Facebook, Instagram, TikTok, and 1000+ sites. HD/4K quality, direct downloads, dark UI, no ads. Free and open-source.
+Download Hire Downloader for free! The best Windows video downloader supporting Facebook, Instagram, TikTok, and 1000+ sites. HD/4K quality, direct downloads, dark UI, secure verified updates, no ads. Free and open-source.
 
-hire downloader, video downloader, facebook downloader, instagram downloader, tiktok downloader, twitter downloader, media downloader, windows downloader, free video downloader, hd video downloader, 4k downloader, yt-dlp, download manager, video grabber, online video downloader, media grabber
+hire downloader, video downloader, facebook downloader, instagram downloader, tiktok downloader, twitter downloader, media downloader, windows downloader, free video downloader, hd video downloader, 4k downloader, yt-dlp, download manager, video grabber, online video downloader, media grabber, secure downloader
 
 Create a dark-themed app screenshot showing the Hire Downloader interface with a Facebook video being downloaded, showing the red accent color, progress bar, and quality selector. Modern Windows 11 style.
 
@@ -14,6 +14,6 @@ Create a promotional image showing the Hire Downloader logo with a clean dark UI
 
 Create a social media banner for Hire Downloader showing download speed and quality features, with a gradient dark background and red accent highlights. Clean modern design.
 
-Create an infographic-style image showing Hire Downloader features: social media downloads, direct downloads, auto-updates. Dark theme with red accents. minimalist tech style.
+Create an infographic-style image showing Hire Downloader features: social media downloads, direct downloads, auto-updates with verified integrity. Dark theme with red accents. minimalist tech style.
 
 Create a before/after style image showing the simplicity of Hire Downloader - paste URL, pick quality, download. Dark UI with red accent color highlights. Clean minimal design.

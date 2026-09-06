@@ -1,10 +1,10 @@
 #define MyAppName "Hire Downloader"
-#define MyAppVersion "4.2.0"
+#define MyAppVersion "4.3.0"
 #define MyAppPublisher "Hire Downloader"
 #define MyAppExeName "HireDownloader.exe"
 
 [Setup]
-AppId={{A1B2C3D4-E5F6-7890-ABCD-HIREDL64X003}
+AppId={{8315F568-9E5A-41A6-8BFF-C92FE5859A24}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
@@ -36,3 +36,4 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+

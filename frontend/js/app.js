@@ -39,8 +39,15 @@ window.app = {
       item.status = 'fetching';
       item.error = '';
       item.progress = 0;
+      item.speed = '';
+      item.eta = '';
       this.renderDownloads();
-      await pycall('add_url', item.url);
+      const result = await pycall('retry_download', item.id, item.url);
+      if (result && result.error) {
+        item.status = 'error';
+        item.error = result.error;
+        this.renderDownloads();
+      }
       this.refresh();
     }
   },
@@ -63,7 +70,16 @@ window.app = {
     SettingsUI.hide();
   },
 
-  async browseFolder() {},
+  async browseFolder() {
+    try {
+      const dirs = await window.pywebview.api.create_folder_dialog();
+      if (dirs && dirs.length > 0) {
+        document.getElementById('settingsPath').value = dirs[0];
+      }
+    } catch (e) {
+      console.error('browseFolder:', e);
+    }
+  },
 
   showImport() { document.getElementById('importModal').style.display = 'flex'; },
 
@@ -245,7 +261,12 @@ window.app = {
       item.speed = speed;
       item.eta = eta;
       item.status = 'downloading';
-      this.renderDownloads();
+      const card = document.querySelector(`.dl-card[data-id="${id}"]`);
+      if (card) {
+        DownloadsUI.updateProgress(card, item);
+      } else {
+        this.renderDownloads();
+      }
     }
   },
 

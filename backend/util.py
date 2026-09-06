@@ -4,6 +4,7 @@ import os
 import re
 import time
 import uuid
+from urllib.parse import urlparse
 
 
 def new_id() -> str:
@@ -88,9 +89,16 @@ def is_ytdlp_url(url: str) -> bool:
     return any(re.search(h, u) for h in _YTDLP_HOSTS)
 
 
+def has_allowed_scheme(url: str) -> bool:
+    parsed = urlparse((url or "").strip())
+    return parsed.scheme.lower() in ("http", "https")
+
+
 def detect_type(url: str) -> str:
     u = (url or "").strip()
     if re.match(r"^(magnet:|udp:)", u, re.I) or re.search(r"\.torrent(\?|$)", u, re.I):
+        return "unsupported"
+    if not has_allowed_scheme(u):
         return "unsupported"
     if is_ytdlp_url(u):
         return "social"

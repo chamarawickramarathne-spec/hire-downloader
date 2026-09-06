@@ -3,6 +3,7 @@ out/
 dist/
 dist-electron/
 
+release/
 Final/
 Hire downloader Sell/
 .venv/
@@ -20,6 +21,8 @@ Thumbs.db
 .env
 .env.*
 resources/ffmpeg.exe
+resources/ffmpeg_x64.exe
+resources/ffmpeg_x86.exe
 resources_x86/
 package-lock.json
 cmd.exe
