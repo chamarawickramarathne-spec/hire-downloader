@@ -270,7 +270,7 @@ class Api:
     def _call(self, method: str, *args: Any) -> None:
         """Call a JS method with JSON-serialized args (no string interpolation)."""
         payload = json.dumps(args)
-        self._eval(f"window.app && window.app.{method}.apply(null,{payload})")
+        self._eval(f"window.app && window.app.{method}.apply(window.app,{payload})")
 
     def _push_downloads(self) -> None:
         self._call("updateDownloads", [it.to_dict() for it in self.list_items()])

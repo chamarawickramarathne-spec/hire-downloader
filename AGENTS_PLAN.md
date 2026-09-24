@@ -1,4 +1,26 @@
-# Hire Downloader — MOD 11 Plan: Security Audit Remediation
+# Hire Downloader — MOD 12 Plan: Fix frozen UI (Python→JS push regression)
+
+## Goal
+Restore all Python→UI updates that were broken by the MOD 11 JSON-safe `_call` rewrite.
+
+## Status
+- [x] Root cause confirmed live (pywebview + WebView2, real JS bridge): every `_call` push threw `TypeError: this.renderDownloads is not a function` because `_call` used `window.app.{fn}.apply(null, ...)` (`this === null`); `_eval` swallowed it → UI frozen at first snapshot ("fetching" forever, no progress).
+- [x] Fix: `Api._call` now uses `.apply(window.app, ...)` (binds `this`; fixed method names + JSON args → no injection surface).
+- [x] Verified live: seedr direct link transitions fetching → ready (filename shown), Start → downloading with progress; x64 + x86 headless API both reach `ready`.
+- [x] Bump version to 4.3.1 (config, installers, UI).
+- [x] Update AGENTS.md, AGENTS_PLAN.md, medial_support.txt.
+- [x] Build x64 + x86 installers (both succeeded; bundles verified to contain v4.3.1 frontend).
+- [x] Test both builds (both packaged exes launch and stay running; live GUI test: fetch → ready → Start → progress; x64 + x86 headless both reach ready).
+- [ ] Git commit + release (with published SHA-256 hashes)
+
+## Changes Done
+- `backend/app.py` `Api._call`: `window.app.{method}.apply(null, ...)` → `window.app.{method}.apply(window.app, ...)`.
+- Version bumps: `backend/config.py`, `build/installer_x64.iss`, `build/installer_x86.iss`, `frontend/index.html` badges.
+
+## Version
+MOD 12 — v4.3.1
+
+# Previous — Hire Downloader — MOD 11 Plan: Security Audit Remediation
 
 ## Goal
 Fix all security issues and bugs found in the full-app security audit, harden the update pipeline, and align with global AGENTS rules (release hygiene, ffmpeg arch correctness).

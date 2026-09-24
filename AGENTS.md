@@ -6,9 +6,15 @@
 Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS frontend). Dark UI. Facebook, Instagram, TikTok, Twitter/X, and 1000+ social sites via yt-dlp. Direct file downloads. Supports **32-bit and 64-bit** Windows builds. External binary: ffmpeg.exe only.
 
 ## Current Version
-- **v4.3.0** — MOD 11 (2026-09-06) — Security audit remediation
+- **v4.3.1** — MOD 12 (2026-09-25) — Fix frozen UI (Python→JS push regression)
 
 ## Mod Log
+
+### MOD 12 (v4.3.1) — 2026-09-25 — Fix frozen UI (Python→JS push regression)
+- **Bug (critical, app-wide):** `Api._call` invoked JS push methods via `window.app.{fn}.apply(null, ...)`, so inside each method `this` was `null` and `this.downloads` / `this.renderDownloads()` / `this.renderHistory()` threw `TypeError: this.renderDownloads is not a function`. `_eval` swallowed the exception, so every Python→UI update (fetch → ready, download progress, completion, queue counts, history, updater) silently died. The card stayed on its first snapshot — direct downloads appeared to "keep fetching" forever (no Start button, no progress). Regression introduced by the MOD 11 JSON-safe `_call` rewrite.
+- **Fix:** `_call` now binds the receiver: `window.app.{fn}.apply(window.app, payload)`. Method names are fixed app constants and args are JSON-serialized, so no injection surface.
+- **Verified live (pywebview + WebView2):** seedr.cc direct link (891 MB .mkv) transitions fetching → ready with correct filename; Start → downloading with live progress pushes; both x64 and x86 headless API flows reach `ready`.
+- Bumped version to 4.3.1 (config, installers, UI badges).
 
 ### MOD 11 (v4.3.0) — 2026-09-06 — Security audit remediation
 - **Security — JS injection (critical):** replaced all untrusted-string interpolation into `evaluate_js` with JSON-serialized args (`Api._call`). `speed`, `eta`, `path`, and update-progress strings from remote sources can no longer inject JS into the pywebview bridge (was an RCE path via `open_folder`/`install_update`).
