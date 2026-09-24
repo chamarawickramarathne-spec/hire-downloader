@@ -17,7 +17,7 @@ from backend import direct_engine, history as history_mod, ytdlp_engine
 from backend.config import APP_VERSION
 from backend.models import DownloadItem, FormatOption, HistoryItem
 from backend.queue_mgr import DownloadQueue
-from backend.settings import load_settings, save_settings
+from backend.settings import _valid_download_path, load_settings, save_settings
 from backend.util import badge_for, detect_type, friendly_ytdlp_error, new_id, uses_ytdlp
 
 
@@ -45,13 +45,17 @@ class Api:
         return dict(self.settings)
 
     def save_settings(self, data: dict) -> str:
-        self.settings.update(data or {})
-        dl = self.settings.get("download_path")
-        if not dl or not isinstance(dl, str) or not os.path.isabs(dl):
-            from backend.settings import DEFAULT_SETTINGS
-            self.settings["download_path"] = DEFAULT_SETTINGS["download_path"]
+        dl = (data or {}).get("download_path")
+        if not _valid_download_path(dl):
+            return json.dumps({"ok": False, "error": "Invalid download path"})
+        try:
+            max_conc = int((data or {}).get("max_concurrent", self.settings.get("max_concurrent", 1)))
+        except (TypeError, ValueError):
+            return json.dumps({"ok": False, "error": "Invalid concurrency value"})
+        self.settings["download_path"] = dl
+        self.settings["max_concurrent"] = max_conc
         save_settings(self.settings)
-        self.queue.set_max(int(self.settings.get("max_concurrent", 1)))
+        self.queue.set_max(max_conc)
         return json.dumps({"ok": True})
 
     def add_url(self, url: str) -> str:

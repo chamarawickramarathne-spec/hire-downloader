@@ -1,3 +1,32 @@
+# Hire Downloader — MOD 13 Plan: Fix Settings download path (Browse + silent fallback)
+
+## Goal
+Make Settings → Browse actually set the download path, and stop silently falling back to the default folder when the path is invalid.
+
+## Status
+- [x] Root cause confirmed: `browseFolder` called `window.pywebview.api.create_folder_dialog()` directly (raw `json.dumps` string → `dirs[0]` = `'['`); `save_settings` silently reset invalid paths to the default and returned `{"ok": true}`.
+- [x] Fix `browseFolder` → `pycall('create_folder_dialog')`.
+- [x] Fix `Api.save_settings`: uses `settings._valid_download_path`; rejects invalid path with `{"ok": false, "error": "Invalid download path"}` without mutating stored settings.
+- [x] Fix JS `saveSettings`: on error shows `statusBar` message, keeps modal open, re-syncs `this.settings` from backend.
+- [x] Verified live (pywebview + WebView2, temp APPDATA): valid path saved/persisted; `'['` rejected with stored path unchanged.
+- [x] Bump version to 4.3.2 (config, installers, UI).
+- [x] Update AGENTS.md, AGENTS_PLAN.md, medial_support.txt.
+- [x] Security audit of changed path.
+- [x] Build x64 + x86 installers (both succeeded; bundles verified to contain v4.3.2 frontend + `pycall('create_folder_dialog')` fix).
+- [x] Smoke-test both builds (both packaged exes launch and stay running).
+- [ ] Git commit + release v4.3.2 (with published SHA-256 hashes).
+
+## Changes Done
+- `frontend/js/app.js`: `browseFolder` now `const dirs = await pycall('create_folder_dialog');`.
+- `backend/app.py`: `save_settings` refactored (validates `_valid_download_path`, no silent reset, returns error).
+- `frontend/js/app.js`: `saveSettings` handles `result.error`.
+- Version bumps: `backend/config.py`, `build/installer_x64.iss`, `build/installer_x86.iss`, `frontend/index.html` badges.
+
+## Version
+MOD 13 — v4.3.2
+
+---
+
 # Hire Downloader — MOD 12 Plan: Fix frozen UI (Python→JS push regression)
 
 ## Goal

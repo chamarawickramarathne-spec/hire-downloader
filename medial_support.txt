@@ -1,4 +1,4 @@
-Hire Downloader v4.3.1
+Hire Downloader v4.3.2
 
 === APPLICATION TITLE ===
 Hire Downloader
@@ -11,13 +11,14 @@ Hire Downloader is a free, lightweight Windows application built with Python and
 
 The app also handles direct HTTP file downloads with resume support, making it a one-stop tool for media fans, marketers, content creators, students, and anyone who wants to keep media offline. Choose video quality (up to HD/4K where available) from an in-app quality picker, queue multiple downloads, and reorder with pause/resume/cancel controls.
 
-The modern dark interface keeps everything readable and fast: paste a URL, pick quality, and download. Download history lets you re-add anything instantly. Automatic updates are built in — the app checks GitHub for new versions and verifies installer integrity (SHA-256 where published, plus Authenticode signature checks) before updating, so you always run a secure, current build.
+The modern dark interface keeps everything readable and fast: paste a URL, pick quality, and download. Settings let you set your own download folder with a Browse picker or manual path entry — invalid paths show a clear error instead of silently falling back. Download history lets you re-add anything instantly. Automatic updates are built in — the app checks GitHub for new versions and verifies installer integrity (SHA-256 where published, plus Authenticode signature checks) before updating, so you always run a secure, current build.
 
 Key benefits and capabilities:
 - Social media downloads: Facebook, Instagram, TikTok, Twitter/X, Twitch, Vimeo, SoundCloud, Dailymotion, Reddit, and 1000+ more via yt-dlp.
 - Direct file downloads with resume and range support.
 - Quality selector with resolution options where available.
 - Download queue with configurable concurrency (1–10) plus pause/resume/cancel.
+- Custom download folder: choose with Browse or type a path — invalid paths are rejected with a clear message.
 - Persistent download history with one-click re-add.
 - Automatic GitHub-based updates with verified installer integrity.
 - Dual-architecture support for 32-bit and 64-bit Windows 10/11.
@@ -28,7 +29,7 @@ Hire Downloader solves the everyday problem of saving videos from sites that mak
 === FACEBOOK PROMOTIONAL TEXT ===
 Want to watch your favorite videos anytime, even offline? Meet Hire Downloader — the free Windows app that saves videos from Facebook, Instagram, TikTok, Twitter/X, Twitch, Vimeo, SoundCloud, and 1000+ more sites in a few clicks!
 
-Just paste a link, pick your quality (up to HD/4K), and download. It also grabs direct files with resume support. Lightweight dark UI, no ads, no bloatware — and built-in auto-updates keep it fast and secure.
+Just paste a link, pick your quality (up to HD/4K), and download. You choose where files are saved — set your own folder easily. It also grabs direct files with resume support. Lightweight dark UI, no ads, no bloatware — and built-in auto-updates keep it fast and secure.
 
 Perfect for creators, marketers, and casual watchers alike. 100% free and open source.
 
@@ -38,12 +39,12 @@ Try Hire Downloader today and keep your favorite media forever!
 #HireDownloader #VideoDownloader #FacebookDownloader #InstagramDownloader #TikTokDownloader #TwitterDownloader #FreeVideoDownloader #HDVideoDownloader #DownloadManager #MediaDownloader #WindowsApps #OpenSource #ytdlp #SaveVideos #DownloadVideos
 
 === AI IMAGE PROMPTS ===
-1. A dark-themed desktop app screenshot showing the Hire Downloader interface with a Facebook video being downloaded, displaying a red accent progress bar, quality selector dropdown, and the 4.3.1 version badge. Modern Windows 11 flat UI style, clean, high contrast.
+1. A dark-themed desktop app screenshot showing the Hire Downloader interface with a Facebook video being downloaded, displaying a red accent progress bar, quality selector dropdown, and the 4.3.2 version badge. Modern Windows 11 flat UI style, clean, high contrast.
 
-2. A promotional hero image of the Hire Downloader logo on a dark gradient background with download speed arrows and a shield icon, representing fast verified updates. Professional tech marketing style with red accent highlights.
+2. A promotional hero image of the Hire Downloader logo on a dark gradient background with a settings gear and folder icon, representing easy custom download paths, plus download speed arrows and a shield icon for verified updates. Professional tech marketing style with red accent highlights.
 
-3. A social media banner for Hire Downloader showing the app's ease of use: a single URL input bar, quality picker, and a completed download card with a green check, on a dark background with red accents. Clean, modern, minimal.
+3. A social media banner for Hire Downloader showing the app's ease of use: a single URL input bar, quality picker, a folder-selection dialog for choosing where files are saved, and a completed download card with a green check, on a dark background with red accents. Clean, modern, minimal.
 
-4. An infographic-style image showing Hire Downloader features: social media downloads (Facebook, Instagram, TikTok, X), direct file downloads with resume, and GitHub auto-updates with integrity verification. Dark theme, red accents, minimalist flat icons in a grid.
+4. An infographic-style image showing Hire Downloader features: social media downloads (Facebook, Instagram, TikTok, X), direct file downloads with resume, custom download folder settings, and GitHub auto-updates with integrity verification. Dark theme, red accents, minimalist flat icons in a grid.
 
-5. A split before/after image demonstrating Hire Downloader's simplicity: "paste URL, pick quality, download" on the left, and a happy user with an offline media library on the right. Dark UI styling with red accent highlights, modern minimal design.
+5. A split before/after image demonstrating Hire Downloader's simplicity: "paste URL, pick quality, choose your folder, download" on the left, and a happy user with an offline media library on the right. Dark UI styling with red accent highlights, modern minimal design.

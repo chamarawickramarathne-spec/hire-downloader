@@ -4,7 +4,7 @@ import os
 import sys
 
 APP_NAME = "HireDownloader"
-APP_VERSION = "4.3.1"
+APP_VERSION = "4.3.2"
 GITHUB_OWNER = "chamarawickramarathne-spec"
 GITHUB_REPO = "hire-downloader"
 

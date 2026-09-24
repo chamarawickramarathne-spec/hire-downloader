@@ -6,9 +6,16 @@
 Windows media downloader in **Python** (pywebview + Edge WebView2 + HTML/CSS/JS frontend). Dark UI. Facebook, Instagram, TikTok, Twitter/X, and 1000+ social sites via yt-dlp. Direct file downloads. Supports **32-bit and 64-bit** Windows builds. External binary: ffmpeg.exe only.
 
 ## Current Version
-- **v4.3.1** — MOD 12 (2026-09-25) — Fix frozen UI (Python→JS push regression)
+- **v4.3.2** — MOD 13 (2026-09-25) — Fix Settings download path (Browse + silent fallback)
 
 ## Mod Log
+
+### MOD 13 (v4.3.2) — 2026-09-25 — Fix Settings download path (Browse + silent fallback)
+- **Bug:** Settings → Browse never worked. `browseFolder` (`frontend/js/app.js`) called the bridge directly (`window.pywebview.api.create_folder_dialog()`) instead of `pycall()`, but that endpoint returns a `json.dumps(...)` **string** which the bridge relays as a raw JS string. `dirs[0]` was therefore `'['`, the path input became `'['`, and `save_settings` (MOD 11's validation) rejected it and **silently** reset to the default `~/Downloads/Hire Downloads` while returning `{"ok": true}` — so downloads always landed in the default folder with no error shown.
+- **Fix:** `browseFolder` now uses `pycall('create_folder_dialog')` (parses the JSON string → real folder path).
+- **Fix (no silent fallback):** `Api.save_settings` now uses `settings._valid_download_path` and, on an invalid path, returns `{"ok": false, "error": "Invalid download path"}` WITHOUT mutating stored settings. JS `saveSettings` shows the error in `statusBar`, keeps the modal open, and re-syncs `this.settings` from the backend. Supersedes MOD 11's "falls back to default on invalid input" behavior.
+- **Verified live (pywebview + WebView2, temp APPDATA):** valid path saved and persisted; bad path (`'['`) rejected and the stored path left unchanged.
+- Bumped version to 4.3.2 (config, installers, UI badges).
 
 ### MOD 12 (v4.3.1) — 2026-09-25 — Fix frozen UI (Python→JS push regression)
 - **Bug (critical, app-wide):** `Api._call` invoked JS push methods via `window.app.{fn}.apply(null, ...)`, so inside each method `this` was `null` and `this.downloads` / `this.renderDownloads()` / `this.renderHistory()` threw `TypeError: this.renderDownloads is not a function`. `_eval` swallowed the exception, so every Python→UI update (fetch → ready, download progress, completion, queue counts, history, updater) silently died. The card stayed on its first snapshot — direct downloads appeared to "keep fetching" forever (no Start button, no progress). Regression introduced by the MOD 11 JSON-safe `_call` rewrite.

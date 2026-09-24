@@ -1,5 +1,5 @@
 #define MyAppName "Hire Downloader"
-#define MyAppVersion "4.3.1"
+#define MyAppVersion "4.3.2"
 #define MyAppPublisher "Hire Downloader"
 #define MyAppExeName "HireDownloader.exe"
 

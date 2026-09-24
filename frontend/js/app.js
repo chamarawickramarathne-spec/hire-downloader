@@ -65,14 +65,19 @@ window.app = {
 
   async saveSettings() {
     const data = SettingsUI.collect();
-    await pycall('save_settings', data);
+    const result = await pycall('save_settings', data);
+    if (result && result.error) {
+      document.getElementById('statusBar').textContent = result.error;
+      this.settings = await pycall('get_settings') || {};
+      return;
+    }
     this.settings = data;
     SettingsUI.hide();
   },
 
   async browseFolder() {
     try {
-      const dirs = await window.pywebview.api.create_folder_dialog();
+      const dirs = await pycall('create_folder_dialog');
       if (dirs && dirs.length > 0) {
         document.getElementById('settingsPath').value = dirs[0];
       }
